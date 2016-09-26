@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mocha Tests</title>
+    <link rel="stylesheet" href="../node_modules/mocha/mocha.css">
+
+    <style>
+    .sandbox { display: none; }
+    </style>
+
+    <script>
+    /* globals mocha, chai, T */
+    /* globals sandbox1, tpl1 */
+    </script>
+
+    <script src="../js/t.js"></script>
+
+    <script src="../node_modules/mocha/mocha.js"></script>
+    <script src="../node_modules/chai/chai.js"></script>
+    <script>mocha.setup('bdd');</script>
+  </head>
+  <body>
+    <div id="mocha"></div>
+
+    <div id="sandbox1" class="sandbox">
+      <template id="tpl1">
+        Foo <span>[[bar]]</span> baz
+      </template>
+    </div>
+
+
+    <script>
+    const assert = chai.assert;
+
+    describe('T', () => {
+      it('render tpl1 to sandbox', () => {
+        var tpl = new T(tpl1);
+        tpl.bar = 'bar';
+        tpl.render();
+        assert.equal(sandbox1.textContent.trim(), 'Foo bar baz');
+        tpl.set('bar', 'bar-too');
+        assert.equal(sandbox1.textContent.trim(), 'Foo bar-too baz');
+      });
+    });
+    </script>
+
+    <script>
+    mocha.run();
+    </script>
+  </body>
+</html>

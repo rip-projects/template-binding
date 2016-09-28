@@ -6,8 +6,16 @@ class Binding {
     this.annotations = [];
   }
 
-  annotate (annotation) {
-    this.annotations.push(annotation);
+  walkEffect (value) {
+    this.annotations.forEach(function (annotation) {
+      try {
+        annotation.effect(value);
+      } catch (err) {
+        console.error('Error caught while walk effect annotation: ' + annotation.expr.value + '\n' + err.stack);
+      }
+    });
+
+    Object.keys(this.paths).forEach(i => this.paths[i].walkEffect(value ? value[i] : undefined));
   }
 }
 

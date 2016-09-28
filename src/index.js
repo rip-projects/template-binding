@@ -1,16 +1,18 @@
 /* globals Node */
 const Expr = require('./expr');
 const Binding = require('./binding');
+const Accessor = require('./accessor');
 const Annotation = require('./annotation');
 
 class T {
   constructor (template, host) {
     this.__template = template;
-    this.__templateHost = host || this.__template.parentElement;
+    this.__templateHost = host || (template ? template.parentElement : null);
     this.__templateRoot = [];
     this.__templateStamped = false;
     this.__templateAnnotatedElements = [];
     this.__templateBindings = {};
+    this.__templateListeners = {};
   }
 
   render () {
@@ -27,10 +29,10 @@ class T {
     }
   }
 
-  get (key) {
+  get (path) {
     var object = this;
 
-    var segments = key.split('.');
+    var segments = path.split('.');
 
     segments.some(segment => {
       if (object === undefined || object === null) {
@@ -45,8 +47,8 @@ class T {
     return object;
   }
 
-  set (key, value) {
-    var oldValue = this.get(key);
+  set (path, value) {
+    var oldValue = this.get(path);
 
     if (value === oldValue) {
       return;
@@ -54,7 +56,7 @@ class T {
 
     var object = this;
 
-    var segments = key.split('.');
+    var segments = path.split('.');
 
     segments.slice(0, -1).forEach(segment => {
       if (!object) {
@@ -71,57 +73,49 @@ class T {
 
     object[property] = value;
 
-    this.__notify(key, value, oldValue);
+    this.notify(path, value, oldValue);
   }
 
-  __notify (path, value, oldValue) {
-    var segments = path.split('.');
-    try {
-      var walkingSegments = [];
-      var binding;
-      try {
-        var found = segments.every(function (segment) {
-          var currentBinding = binding ? binding.paths[segment] : this.__templateBindings[segment];
-          if (!currentBinding) {
-            return false;
-          }
+  __getBinding (path) {
+    let binding;
 
-          walkingSegments.push(segment);
-          binding = currentBinding;
-          return true;
-        }.bind(this), null);
+    let segments = path.split('.');
 
-        if (!found) {
-          return;
-        }
-      } catch (err) {
-        console.trace(err.stack);
-        return;
+    let bindings = this.__templateBindings;
+    let found = segments.every(segment => {
+      var currentBinding = binding ? binding.paths[segment] : bindings[segment];
+      if (!currentBinding) {
+        return false;
       }
 
-      // FIXME keluarin walkEffect biar ga bikin function berulang kali
-      var walkEffect = function (binding, value, oldValue) {
-        binding.annotations.forEach(function (annotation) {
-          try {
-            annotation.effect(value, oldValue);
-          } catch (err) {
-            console.error('Error caught on #__notify#walkEffect annotation: ' + annotation.expr.value + '\n' + err.stack);
-          }
-        });
+      binding = currentBinding;
+      return true;
+    }, null);
 
-        Object.keys(binding.paths).forEach(function (i) {
-          walkEffect(binding.paths[i], value ? value[i] : undefined);
-        });
-      }.bind(this);
+    if (found) {
+      return binding;
+    }
+  }
 
-      walkEffect(binding, value, oldValue);
+  notify (path, value, oldValue) {
+    try {
+      let binding = this.__getBinding(path);
+      binding.walkEffect(value);
     } catch (err) {
-      console.warn('#__notify caught error: ' + err.message +
+      console.warn('#notify caught error: ' + err.message +
           '\n Stack trace: ' + err.stack);
     }
   }
 
+  addComputedProperty (propName, fnExpr) {
+    let expr = Expr.getFn(fnExpr, true);
+    let accessor = Accessor.get(this, propName, expr);
+    return Annotation.annotate(this, accessor);
+  }
+
   __parseAnnotations () {
+    this.__templateAnnotatedElements = [];
+
     let len = this.__templateRoot.length;
     for (let i = 0; i < len; i++) {
       let node = this.__templateRoot[i];
@@ -132,7 +126,48 @@ class T {
       }
     }
 
-    Object.keys(this.__templateBindings).forEach(key => this.__notify(key, this.get(key)));
+    Object.keys(this.__templateBindings).forEach(key => this.notify(key, this.get(key)));
+  }
+
+  __parseEventAnnotations (element, attrName) {
+    // bind event annotation
+    let attrValue = element.getAttribute(attrName);
+    let eventName = attrName.slice(1, -1);
+    // var eventName = attrName.substr(3);
+    if (eventName === 'tap') {
+      eventName = 'click';
+    }
+
+    let context = this;
+    let expr = Expr.getFn(attrValue, true);
+
+    // TODO might be slow or memory leak setting event listener to inside element
+    element.addEventListener(eventName, function (evt) {
+      return expr.invoke(context);
+    }, true);
+  }
+
+  __parseAttributeAnnotations (element) {
+    let context = this;
+
+    // clone attributes to array first then foreach because we will remove
+    // attribute later if already processed
+    // this hack to make sure when attribute removed the attributes index doesnt shift.
+    return Array.prototype.slice.call(element.attributes).reduce(function (annotated, attr) {
+      var attrName = attr.name;
+
+      if (attrName.indexOf('(') === 0) {
+        context.__parseEventAnnotations(element, attrName);
+      } else {
+        // bind property annotation
+        let expr = Expr.get(attr.value);
+        if (expr.type !== 's') {
+          annotated = Annotation.annotate(context, Accessor.get(element, attrName)) || annotated;
+        }
+      }
+
+      return annotated;
+    }, false);
   }
 
   __parseElementAnnotations (element) {
@@ -176,36 +211,14 @@ class T {
   }
 
   __parseTextAnnotations (node) {
-    let context = this;
-    let expr = Expr.get(node.textContent);
-
-    if (expr.type === 's') {
-      return false;
-    }
-
-    // bind read annotation
-    if (expr.type === 'p') {
-      expr.annotatedArgs.forEach(function (arg) {
-        context.__bind(arg.name, new Annotation(expr, node));
-      });
-    } else {
-      throw new Error('Expr type ' + expr.type + ' not implemented');
-    }
-
-    // TODO why ' ' why not ''
-    // node.textContent = ' ';
-    node.textContent = '';
-
-    return true;
+    return Annotation.annotate(this, Accessor.get(node));
   }
 
-  __bind (name, annotation) {
+  __templateGetBinding (name) {
     let segments = name.split('.');
-
+    let bindings;
     let binding;
 
-    // resolve binding
-    let bindings;
     for (let i = 0; i < segments.length; i++) {
       let segment = segments[i];
 
@@ -218,7 +231,45 @@ class T {
       binding = bindings[segment];
     }
 
-    binding.annotate(annotation);
+    return binding;
+  }
+
+  addTargetedListener (eventName, target, callback) {
+    let self = this;
+    let listeners = this.__templateListeners[eventName] = this.__templateListeners[eventName] || [];
+
+    let listener = {
+      name: eventName,
+      target: target,
+      callback: callback,
+      listenerCallback (evt) {
+        if (evt.target.__templateInstance !== self) {
+          return;
+        }
+
+        if (evt.target === listener.target) {
+          callback.apply(null, arguments);
+        }
+      },
+    };
+
+    listeners.push(listener);
+
+    this.__templateHost.addEventListener(eventName, listener.listenerCallback, true);
+  }
+
+  removeTargetedListener (eventName, target, callback) {
+    let listeners = [];
+    if (target && this.__templateListeners[eventName]) {
+      this.__templateListeners[eventName].forEach(listener => {
+        if (listener.target === target && (!callback || listener.callback === callback)) {
+          return;
+        }
+
+        listeners.push(listener);
+      });
+    }
+    this.__templateListeners[eventName] = listeners;
   }
 }
 

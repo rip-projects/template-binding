@@ -1,10 +1,11 @@
 const Token = require('./token');
 
 class Expr {
-  constructor (value) {
+  constructor (value, unwrapped) {
     // define base properties
     this.value = value;
-    this.mode = '';
+    this.unwrapped = Boolean(unwrapped);
+    this.mode = '[';
     this.type = 's';
     this.name = '';
     this.args = [];
@@ -17,21 +18,25 @@ class Expr {
     // cleanse value
     value = value.trim();
 
-    if (value[0] !== '[' && value[0] !== '{') {
-      return;
+    let token = value;
+    if (!this.unwrapped) {
+      if (value[0] !== '[' && value[0] !== '{') {
+        return;
+      }
+      token = value.slice(2, -2).trim();
+      this.mode = value[0];
     }
 
-    let token = value.slice(2, -2).trim();
-    this.mode = value[0];
-
-    if (value.indexOf('(') < 0) {
+    if (token.indexOf('(') < 0) {
       this.type = 'p';
       this.name = token;
       this.args.push(new Token(token));
     } else {
+      // force mode to '[' when type is !p
+      this.mode = '[';
       this.type = 'm';
 
-      let matches = token.match(/([^(]+)\(([^)]+)\)/);
+      let matches = token.match(/([^(]+)\(([^)]*)\)/);
 
       this.name = matches[1].trim();
 
@@ -39,47 +44,58 @@ class Expr {
     }
   }
 
-  get annotatedArgs () {
-    if (!this._annotatedArgs) {
-      let annotatedArgs = [];
+  get annotatedPaths () {
+    if (!this._annotatedPaths) {
+      let annotatedPaths = [];
       this.args.forEach(arg => {
-        if (arg.type === 'v' && annotatedArgs.indexOf(arg.name) === -1) {
-          annotatedArgs.push(arg);
+        if (arg.type === 'v' && annotatedPaths.indexOf(arg.name) === -1) {
+          annotatedPaths.push(arg);
         }
       });
-      this._annotatedArgs = annotatedArgs;
+      this._annotatedPaths = annotatedPaths;
     }
 
-    return this._annotatedArgs;
+    return this._annotatedPaths;
   }
 
   invoke (context) {
+    let f = typeof context.get === 'function' ? context.get(this.name) : context[this.name];
+
     if (this.type === 'p') {
-      return context[this.name];
+      return f;
+    }
+
+    if (typeof f !== 'function') {
+      throw new Error(`Method is not eligible, ${this.name}`);
     }
 
     let args = this.args.map(arg => {
       return arg.value(context);
     });
-    return context[this.name].apply(context, args);
+
+    return f.apply(context, args);
   }
 }
 
-function get (value) {
+function get (value, unwrapped) {
   // FIXME implement cache
-  return new Expr(value);
+  return new Expr(value, unwrapped);
+}
+
+function getFn (value, unwrapped) {
+  return get(value.indexOf('(') === -1 ? (value + '()') : value, unwrapped);
 }
 
 function rawTokenize (str) {
   let count = 0;
   let tokens = [];
 
-  do {
+  while (str && count++ < 10) {
     let matches = str.match(/^\s*("[^"]*"|'[^']*'|[^,]+),?/);
 
     str = str.substr(matches[0].length);
     tokens.push(matches[1].trim());
-  } while (str && count++ < 10);
+  }
 
   return tokens;
 }
@@ -89,6 +105,7 @@ function tokenize (str) {
 }
 
 module.exports = Expr;
+module.exports.getFn = getFn;
 module.exports.get = get;
 module.exports.rawTokenize = rawTokenize;
 module.exports.tokenize = tokenize;

@@ -3,6 +3,7 @@ const Expr = require('./expr');
 const Binding = require('./binding');
 const Accessor = require('./accessor');
 const Annotation = require('./annotation');
+const Token = require('./token');
 
 class T {
   constructor (template, host) {
@@ -274,3 +275,5 @@ class T {
 }
 
 module.exports = T;
+module.exports.Expr = Expr;
+module.exports.Token = Token;

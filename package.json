@@ -1,11 +1,11 @@
 {
   "name": "template-binding",
   "version": "1.0.0",
-  "description": "",
+  "description": "HTML template with binding",
   "main": "src/index.js",
   "scripts": {
+    "test": "npm run lint && mocha",
     "lint": "eslint -- **/*.js",
-    "test": "mocha",
     "browser": "browser-sync start -s --no-open -f **/*.{css,html} -f js/*.js",
     "webpack": "webpack --watch",
     "watch": "nodemon -x npm run"

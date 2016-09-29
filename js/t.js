@@ -56,6 +56,7 @@ var T =
 	var Binding = __webpack_require__(3);
 	var Accessor = __webpack_require__(4);
 	var Annotation = __webpack_require__(5);
+	var Token = __webpack_require__(2);
 
 	var T = function () {
 	  function T(template, host) {
@@ -350,6 +351,8 @@ var T =
 	}();
 
 	module.exports = T;
+	module.exports.Expr = Expr;
+	module.exports.Token = Token;
 
 /***/ },
 /* 1 */
@@ -412,7 +415,7 @@ var T =
 	  _createClass(Expr, [{
 	    key: 'invoke',
 	    value: function invoke(context) {
-	      var f = context.get(this.name);
+	      var f = typeof context.get === 'function' ? context.get(this.name) : context[this.name];
 
 	      if (this.type === 'p') {
 	        return f;

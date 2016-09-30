@@ -5,7 +5,6 @@ module.exports = {
   output: {
     path: path.join(__dirname, 'js'),
     filename: 't.js',
-    library: 'T',
   },
   module: {
     loaders: [

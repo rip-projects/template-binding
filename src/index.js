@@ -274,6 +274,10 @@ class T {
   }
 }
 
+if (typeof window === 'object') {
+  window.T = T;
+}
+
 module.exports = T;
 module.exports.Expr = Expr;
 module.exports.Token = Token;

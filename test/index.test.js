@@ -191,7 +191,6 @@
             done(new Error(err));
           });
       });
-
     }
 
     it('computed binding', () => {

@@ -80,7 +80,7 @@ function get (node, name, expr) {
           return new AttributeAccessor(node, name);
         }
 
-        return new Accessor(node, name, Expr.get(node.getAttribute(name)));
+        return new Accessor(node, name, expr || Expr.get(node.getAttribute(name)));
       case Node.TEXT_NODE:
         if (node.parentElement && node.parentElement.nodeName === 'TEXTAREA') {
           return new ValueAccessor(node.parentElement);

@@ -58,7 +58,7 @@ class Expr {
     return this._annotatedPaths;
   }
 
-  invoke (context) {
+  invoke (context, otherArgs) {
     let f = typeof context.get === 'function' ? context.get(this.name) : context[this.name];
 
     if (this.type === 'p') {
@@ -66,11 +66,11 @@ class Expr {
     }
 
     if (typeof f !== 'function') {
-      throw new Error(`Method is not eligible, ${this.name}`);
+      throw new Error(`Method is not eligible, ${context.nodeName}#${this.name}`);
     }
 
     let args = this.args.map(arg => {
-      return arg.value(context);
+      return arg.value(context, otherArgs);
     });
 
     return f.apply(context, args);
@@ -82,8 +82,8 @@ function get (value, unwrapped) {
   return new Expr(value, unwrapped);
 }
 
-function getFn (value, unwrapped) {
-  return get(value.indexOf('(') === -1 ? (value + '()') : value, unwrapped);
+function getFn (value, args, unwrapped) {
+  return get(value.indexOf('(') === -1 ? (value + '(' + args.join(', ') + ')') : value, unwrapped);
 }
 
 function rawTokenize (str) {

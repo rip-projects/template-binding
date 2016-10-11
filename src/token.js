@@ -13,14 +13,22 @@ class Token {
     }
   }
 
-  value (context) {
+  value (context, others) {
     context = context || GLOBAL;
 
     if (this.type === 's') {
       return this._value;
     }
 
-    return context[this.name];
+    if (context && this.name in context) {
+      return context[this.name];
+    }
+
+    if (others && this.name in others) {
+      return others[this.name];
+    }
+
+    return;
   }
 }
 

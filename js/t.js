@@ -171,7 +171,7 @@
 	  }, {
 	    key: 'addComputedProperty',
 	    value: function addComputedProperty(propName, fnExpr) {
-	      var expr = Expr.getFn(fnExpr, true);
+	      var expr = Expr.getFn(fnExpr, [], true);
 	      var accessor = Accessor.get(this, propName, expr);
 	      return Annotation.annotate(this, accessor);
 	    }
@@ -208,7 +208,7 @@
 	      }
 
 	      var context = this;
-	      var expr = Expr.getFn(attrValue, true);
+	      var expr = Expr.getFn(attrValue, [], true);
 
 	      // TODO might be slow or memory leak setting event listener to inside element
 	      element.addEventListener(eventName, function (evt) {
@@ -465,8 +465,8 @@
 	  return new Expr(value, unwrapped);
 	}
 
-	function getFn(value, unwrapped) {
-	  return get(value.indexOf('(') === -1 ? value + '()' : value, unwrapped);
+	function getFn(value, args, unwrapped) {
+	  return get(value.indexOf('(') === -1 ? (value + '(' + args.join(', ') + ')') : value, unwrapped);
 	}
 
 	function rawTokenize(str) {

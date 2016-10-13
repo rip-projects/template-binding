@@ -3,15 +3,19 @@ const Token = require('./token');
 class Expr {
   constructor (value, unwrapped) {
     // define base properties
-    this.value = value;
-    this.unwrapped = Boolean(unwrapped);
     this.mode = '[';
     this.type = 's';
     this.name = '';
     this.args = [];
+    this.value = value;
+    this.unwrapped = Boolean(unwrapped);
 
-    // validate args
-    if (typeof value !== 'string') {
+    let valType = typeof value;
+    if (valType === 'function') {
+      this.type = 'm';
+      return;
+    } else if (valType !== 'string') {
+      // validate args
       return;
     }
 
@@ -59,7 +63,9 @@ class Expr {
   }
 
   invoke (context, otherArgs) {
-    let f = typeof context.get === 'function' ? context.get(this.name) : context[this.name];
+    let f = typeof this.value === 'function' ? this.value : (
+      typeof context.get === 'function' ? context.get(this.name) : context[this.name]
+    );
 
     if (this.type === 'p') {
       return f;
@@ -83,6 +89,9 @@ function get (value, unwrapped) {
 }
 
 function getFn (value, args, unwrapped) {
+  if (typeof value === 'function') {
+    return get(value, unwrapped);
+  }
   return get(value.indexOf('(') === -1 ? (value + '(' + args.join(', ') + ')') : value, unwrapped);
 }
 

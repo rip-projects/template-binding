@@ -1,22 +1,13 @@
 /* globals Node */
 
-const Expr = require('./expr');
-
 class Accessor {
-  constructor (node, name, expr) {
+  constructor (node, name) {
     this.node = node;
     this.name = name;
-    this.expr = expr;
-
-    this.changeEvents = [];
   }
 
-  set (value, model) {
-    if (typeof this.node === 'function') {
-      this.node(this.name, this.expr.invoke(model));
-    } else {
-      this.node[this.name] = this.expr.invoke(model);
-    }
+  set (value) {
+    this.node[this.name] = value;
   }
 
   get () {
@@ -26,11 +17,11 @@ class Accessor {
 
 class TextAccessor extends Accessor {
   constructor (node) {
-    super(node, 'textContent', Expr.get(node.textContent));
+    super(node, 'textContent');
   }
 
-  set (value, model) {
-    this.node.textContent = this.expr.invoke(model) || '';
+  set (value) {
+    this.node.textContent = value || '';
   }
 
   get () {
@@ -39,16 +30,8 @@ class TextAccessor extends Accessor {
 }
 
 class ValueAccessor extends Accessor {
-  constructor (node) {
-    super(node, 'value', Expr.get(node.value));
-
-    if (this.node.nodeName === 'INPUT') {
-      this.changeEvents.push('input');
-    }
-  }
-
-  set (value, model) {
-    this.node.value = this.expr.invoke(model) || '';
+  set (value) {
+    this.node.value = value || '';
   }
 
   get () {
@@ -58,11 +41,15 @@ class ValueAccessor extends Accessor {
 
 class AttributeAccessor extends Accessor {
   constructor (node, name) {
-    super(node, name.slice(0, -1), Expr.get(node.getAttribute(name)));
+    super(node, name.slice(0, -1));
   }
 
   set (value) {
-    this.node.setAttribute(this.name, value);
+    if (value) {
+      this.node.setAttribute(this.name, value);
+    } else {
+      this.node.removeAttribute(this.name);
+    }
   }
 
   get () {
@@ -70,27 +57,26 @@ class AttributeAccessor extends Accessor {
   }
 }
 
-function get (node, name, expr) {
+function get (node, name) {
   if (node && 'nodeType' in node) {
     switch (node.nodeType) {
       case Node.ELEMENT_NODE:
-        if (name === 'value') {
-          return new ValueAccessor(node);
-        } else if (name.endsWith('$')) {
+        if (name.endsWith('$')) {
           return new AttributeAccessor(node, name);
         }
 
-        return new Accessor(node, name, expr || Expr.get(node.getAttribute(name)));
+        return new ValueAccessor(node, name);
       case Node.TEXT_NODE:
         if (node.parentElement && node.parentElement.nodeName === 'TEXTAREA') {
-          return new ValueAccessor(node.parentElement);
+          return new ValueAccessor(node.parentElement, 'value');
         }
+
         return new TextAccessor(node);
       default:
         throw new Error(`Unimplemented resolving accessor for nodeType: ${node.nodeType}`);
     }
   } else {
-    return new Accessor(node, name, expr);
+    return new Accessor(node, name);
   }
 }
 

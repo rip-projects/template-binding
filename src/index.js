@@ -48,7 +48,6 @@ T.prototype = {
     this.__templateId = nextId();
     this.__templateAnnotatedElements = [];
     this.__templateBindings = {};
-    this.__templateListeners = {};
     this.$ = {};
 
     if (!template) {
@@ -182,28 +181,6 @@ T.prototype = {
     }
   },
 
-  addObserver (propName, fnExpr) {
-    let expr = Expr.getFn(fnExpr, [propName], true);
-    let accessor = Accessor.get(null, null, expr);
-    let result = Annotation.annotate(this, accessor);
-
-    // invoke first time;
-    expr.invoke(this);
-
-    return result;
-  },
-
-  addComputedProperty (propName, fnExpr) {
-    let expr = Expr.getFn(fnExpr, [], true);
-    let accessor = Accessor.get(this, propName, expr);
-    let annotation = Annotation.annotate(this, accessor);
-
-    // invoke first time;
-    this.set(propName, expr.invoke(this));
-
-    return annotation;
-  },
-
   __parseAnnotations () {
     this.__templateAnnotatedElements = [];
 
@@ -239,36 +216,44 @@ T.prototype = {
   },
 
   __parseAttributeAnnotations (element) {
-    let context = this;
-
     // clone attributes to array first then foreach because we will remove
     // attribute later if already processed
     // this hack to make sure when attribute removed the attributes index doesnt shift.
-    return Array.prototype.slice.call(element.attributes).reduce(function (annotated, attr) {
+    return Array.prototype.slice.call(element.attributes).reduce((annotated, attr) => {
       let attrName = attr.name;
 
       if (attrName.indexOf('(') === 0) {
-        context.__parseEventAnnotations(element, attrName);
+        this.__parseEventAnnotations(element, attrName);
       } else {
         // bind property annotation
-        let expr = Expr.get(attr.value);
-        if (expr.type !== 's') {
-          annotated = Annotation.annotate(context, Accessor.get(element, attrName)) || annotated;
-        }
+        annotated = this.__templateAnnotate(Expr.get(attr.value), Accessor.get(element, attrName)) || annotated;
       }
 
       return annotated;
     }, false);
   },
 
-  __parseElementAnnotations (element) {
-    let annotated = false;
-
-    if (element.__templateInstance) {
+  __templateAnnotate (expr, accessor) {
+    if (expr.type === 's') {
       return false;
     }
 
-    element.__templateInstance = this;
+    // annotate every paths
+    let annotation = new Annotation(this, expr, accessor);
+
+    expr.annotatedPaths.forEach(arg => this.__templateGetBinding(arg.name).annotations.push(annotation));
+
+    return true;
+  },
+
+  __parseElementAnnotations (element) {
+    let annotated = false;
+
+    if (element.__templateModel) {
+      return false;
+    }
+
+    element.__templateModel = this;
 
     // populate $
     if (element.id && !this.$[element.id]) {
@@ -307,7 +292,16 @@ T.prototype = {
   },
 
   __parseTextAnnotations (node) {
-    return Annotation.annotate(this, Accessor.get(node));
+    let expr = Expr.get(node.textContent);
+
+    let accessor;
+    if (node.parentElement && node.parentElement.nodeName === 'TEXTAREA') {
+      accessor = Accessor.get(node.parentElement, 'value');
+    } else {
+      accessor = Accessor.get(node);
+    }
+
+    return this.__templateAnnotate(expr, accessor);
   },
 
   __templateGetBinding (name) {
@@ -329,44 +323,6 @@ T.prototype = {
 
     return binding;
   },
-
-  addTargetedListener (eventName, target, callback) {
-    let self = this;
-    let listeners = this.__templateListeners[eventName] = this.__templateListeners[eventName] || [];
-
-    let listener = {
-      name: eventName,
-      target: target,
-      callback: callback,
-      listenerCallback (evt) {
-        if (evt.target.__templateInstance !== self) {
-          return;
-        }
-
-        if (evt.target === listener.target) {
-          callback.apply(null, arguments);
-        }
-      },
-    };
-
-    listeners.push(listener);
-
-    this.__templateHost.addEventListener(eventName, listener.listenerCallback, true);
-  },
-
-  removeTargetedListener (eventName, target, callback) {
-    let listeners = [];
-    if (target && this.__templateListeners[eventName]) {
-      this.__templateListeners[eventName].forEach(listener => {
-        if (listener.target === target && (!callback || listener.callback === callback)) {
-          return;
-        }
-
-        listeners.push(listener);
-      });
-    }
-    this.__templateListeners[eventName] = listeners;
-  },
 };
 
 if (typeof window === 'object') {
@@ -374,6 +330,7 @@ if (typeof window === 'object') {
 }
 
 module.exports = T;
+module.exports.Accessor = Accessor;
 module.exports.Expr = Expr;
 module.exports.Token = Token;
 module.exports.Serializer = Serializer;

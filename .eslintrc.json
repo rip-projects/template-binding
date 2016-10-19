@@ -3,8 +3,7 @@
   "installedESLint": true,
   "plugins": [
     "standard",
-    "promise",
-    "html"
+    "promise"
   ],
   "rules": {
     "comma-dangle": ["error", "always-multiline"],

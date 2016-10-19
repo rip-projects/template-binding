@@ -4,13 +4,15 @@
   "description": "HTML template with binding",
   "main": "src/index.js",
   "scripts": {
-    "test": "npm run lint && npm run mocha",
-    "coverage": "istanbul cover _mocha -- -u exports -R spec",
-    "mocha": "mocha",
-    "lint": "eslint -- **/*.js",
-    "browser": "browser-sync start -s --no-open -f **/*.{css,html} -f js/*.js",
-    "webpack": "webpack --watch",
-    "watch": "nodemon -x npm run"
+    "clean": "rm -rf dist",
+    "test:coverage": "istanbul cover _mocha -- -u exports -R spec",
+    "test:mocha": "mocha",
+    "test:lint": "eslint -- **/*.js",
+    "test": "npm run test:lint && npm run test:mocha",
+    "dev:browser": "browser-sync start -s --no-open -f **/*.{css,html} -f js/*.js",
+    "dev:watch": "nodemon -x npm run",
+    "build:webpack": "webpack",
+    "build": "npm run clean && npm run build:webpack && NODE_ENV=production npm run build:webpack"
   },
   "author": "Ganesha <reekoheek@gmail.com>",
   "license": "MIT",

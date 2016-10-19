@@ -40,13 +40,13 @@ function fixTemplate (template) {
 }
 
 function T (template, host, marker) {
-  this.__initialize(template, host, marker);
+  this.__templateInitialize(template, host, marker);
 }
 
 T.prototype = {
-  __initialize (template, host, marker) {
+  __templateInitialize (template, host, marker) {
     this.__templateId = nextId();
-    this.__templateAnnotatedElements = [];
+    // this.__templateAnnotatedElements = [];
     this.__templateBindings = {};
     this.__templateHost = host || (template ? template.parentElement : null);
     this.__templateMarker = marker;
@@ -62,18 +62,18 @@ T.prototype = {
 
     this.__parseAnnotations();
 
-    if (!marker) {
-      this.__templateMarker = document.createComment(this.__templateId);
+    if (marker) {
+      return;
+    }
 
-      if (this.__template.parentElement === this.__templateHost) {
-        // when template is child of host, put marker to host before template
-        let parentEl = this.__template.parentElement;
-        parentEl.insertBefore(this.__templateMarker, this.__template);
-        // parentEl.removeChild(this.__template);
-      } else {
-        // when template is not child of host, put marker to host
-        this.__templateHost.appendChild(this.__templateMarker);
-      }
+    if (this.__template.parentElement === this.__templateHost) {
+      // when template parent is template host, it means that template is specific template
+      // then use template as marker
+      this.__templateMarker = this.__template;
+    } else {
+      // when template is not child of host, put marker to host
+      this.__templateMarker = document.createComment(`marker-${this.__templateId}`);
+      this.__templateHost.appendChild(this.__templateMarker);
     }
   },
 
@@ -82,6 +82,10 @@ T.prototype = {
   },
 
   render (content) {
+    if (!this.__templateFragment) {
+      return;
+    }
+
     if (content) {
       try {
         [].forEach.call(this.__templateFragment.querySelectorAll('slot'), slot => {
@@ -162,13 +166,16 @@ T.prototype = {
         binding.walkEffect(value);
       }
     } catch (err) {
-      console.warn('#notify caught error: ' + err.message +
-          '\n Stack trace: ' + err.stack);
+      console.warn(`#notify caught error: ${err.message}\n Stack trace: ${err.stack}`);
     }
   },
 
   __parseAnnotations () {
-    this.__templateAnnotatedElements = [];
+    // this.__templateAnnotatedElements = [];
+
+    // [].forEach.call(this.__templateFragment.querySelectorAll('*'), (el) => {
+    //   console.warn(this.is, !!el.__templateModel, el);
+    // });
 
     let len = this.__templateFragment.childNodes.length;
     for (let i = 0; i < len; i++) {
@@ -224,35 +231,22 @@ T.prototype = {
     }, false);
   },
 
-  __templateAnnotate (expr, accessor) {
-    if (expr.type === 's') {
-      return false;
-    }
-
-    // annotate every paths
-    let annotation = new Annotation(this, expr, accessor);
-
-    expr.annotatedPaths.forEach(arg => this.__templateGetBinding(arg.name).annotations.push(annotation));
-
-    return true;
-  },
-
   __parseElementAnnotations (element) {
     let annotated = false;
+    let scoped = element.__templateModel;
 
-    if (element.__templateModel) {
-      return false;
-    }
+    if (!scoped) {
+      element.classList.add(`${this.__templateHost.is}__scope`);
+      element.__templateModel = this;
 
-    element.__templateModel = this;
+      // populate $
+      if (element.id && !this.$[element.id]) {
+        this.$[element.id] = element;
+      }
 
-    // populate $
-    if (element.id && !this.$[element.id]) {
-      this.$[element.id] = element;
-    }
-
-    if (element.attributes && element.attributes.length) {
-      annotated = this.__parseAttributeAnnotations(element) || annotated;
+      if (element.attributes && element.attributes.length) {
+        annotated = this.__parseAttributeAnnotations(element) || annotated;
+      }
     }
 
     if (element.childNodes && element.childNodes.length) {
@@ -264,7 +258,9 @@ T.prototype = {
 
         switch (childNode.nodeType) {
           case Node.TEXT_NODE:
-            annotated = this.__parseTextAnnotations(childNode) || annotated;
+            if (!scoped) {
+              annotated = this.__parseTextAnnotations(childNode) || annotated;
+            }
             break;
           case Node.ELEMENT_NODE:
             annotated = this.__parseElementAnnotations(childNode) || annotated;
@@ -275,9 +271,9 @@ T.prototype = {
       }
     }
 
-    if (annotated) {
-      this.__templateAnnotatedElements.push(element);
-    }
+    // if (annotated) {
+    //   this.__templateAnnotatedElements.push(element);
+    // }
 
     return annotated;
   },
@@ -293,6 +289,19 @@ T.prototype = {
     }
 
     return this.__templateAnnotate(expr, accessor);
+  },
+
+  __templateAnnotate (expr, accessor) {
+    if (expr.type === 's') {
+      return false;
+    }
+
+    // annotate every paths
+    let annotation = new Annotation(this, expr, accessor);
+
+    expr.annotatedPaths.forEach(arg => this.__templateGetBinding(arg.name).annotations.push(annotation));
+
+    return true;
   },
 
   __templateGetBinding (path) {

@@ -63,23 +63,22 @@ class Expr {
   }
 
   invoke (context, otherArgs) {
-    let f = typeof this.value === 'function' ? this.value : (
-      typeof context.get === 'function' ? context.get(this.name) : context[this.name]
-    );
-
     if (this.type === 'p') {
-      return f;
+      return typeof context.get === 'function' ? context.get(this.name) : context[this.name];
     }
 
-    if (typeof f !== 'function') {
-      throw new Error(`Method is not eligible, ${context.nodeName}#${this.name}`);
+    let fn = context.__templateHost[this.name];
+    if (typeof fn !== 'function') {
+      throw new Error(`Method is not eligible, ${context.__templateHost.nodeName || '$anonymous'}#${this.name}`);
     }
+
 
     let args = this.args.map(arg => {
       return arg.value(context, otherArgs);
     });
 
-    return f.apply(context, args);
+
+    return fn.apply(context, args);
   }
 }
 
@@ -100,7 +99,7 @@ function rawTokenize (str) {
   let tokens = [];
 
   while (str && count++ < 10) {
-    let matches = str.match(/^\s*("[^"]*"|'[^']*'|[^,]+),?/);
+    let matches = str.match(/^\s*("[^"]*"|[^,]+),?/);
 
     str = str.substr(matches[0].length);
     tokens.push(matches[1].trim());

@@ -20,12 +20,18 @@ class Token {
       return this._value;
     }
 
-    if (context && this.name in context) {
-      return context[this.name];
+    if (context) {
+      let val = context.get ? context.get(this.name) : context[this.name];
+      if (typeof val !== 'undefined') {
+        return val;
+      }
     }
 
-    if (others && this.name in others) {
-      return others[this.name];
+    if (others) {
+      let val = others.get ? others.get(this.name) : others[this.name];
+      if (typeof val !== 'undefined') {
+        return val;
+      }
     }
 
     return;

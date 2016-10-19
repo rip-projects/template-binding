@@ -15,7 +15,9 @@ class Binding {
       }
     });
 
-    Object.keys(this.paths).forEach(i => this.paths[i].walkEffect(value ? value[i] : undefined));
+    Object.keys(this.paths).forEach(i => {
+      this.paths[i].walkEffect(value ? value[i] : undefined);
+    });
   }
 }
 

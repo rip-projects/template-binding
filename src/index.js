@@ -33,21 +33,23 @@ function elementSlot (element) {
 }
 
 function fixTemplate (template) {
-  if (!template.content) {
+  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
     window.HTMLTemplateElement.decorate(template);
   }
   return template;
 }
 
-function T (template, host) {
-  this.__initialize(template, host);
+function T (template, host, marker) {
+  this.__initialize(template, host, marker);
 }
 
 T.prototype = {
-  __initialize (template, host) {
+  __initialize (template, host, marker) {
     this.__templateId = nextId();
     this.__templateAnnotatedElements = [];
     this.__templateBindings = {};
+    this.__templateHost = host || (template ? template.parentElement : null);
+    this.__templateMarker = marker;
     this.$ = {};
 
     if (!template) {
@@ -56,17 +58,22 @@ T.prototype = {
 
     // do below only if template is exists
     this.__template = fixTemplate(template);
-    this.__templateHost = host || (template ? template.parentElement : null);
     this.__templateFragment = document.importNode(this.__template.content, true);
-    this.__templateMarker = document.createComment(this.__templateId);
 
     this.__parseAnnotations();
 
-    if (this.__template.parentElement === this.__templateHost) {
-      this.__templateHost.insertBefore(this.__templateMarker, this.__template);
-      this.__templateHost.removeChild(this.__template);
-    } else {
-      this.__templateHost.appendChild(this.__templateMarker);
+    if (!marker) {
+      this.__templateMarker = document.createComment(this.__templateId);
+
+      if (this.__template.parentElement === this.__templateHost) {
+        // when template is child of host, put marker to host before template
+        let parentEl = this.__template.parentElement;
+        parentEl.insertBefore(this.__templateMarker, this.__template);
+        // parentEl.removeChild(this.__template);
+      } else {
+        // when template is not child of host, put marker to host
+        this.__templateHost.appendChild(this.__templateMarker);
+      }
     }
   },
 
@@ -98,7 +105,7 @@ T.prototype = {
       }
     }
 
-    this.__templateHost.insertBefore(this.__templateFragment, this.__templateMarker);
+    this.__templateMarker.parentElement.insertBefore(this.__templateFragment, this.__templateMarker);
   },
 
   get (path) {
@@ -148,30 +155,9 @@ T.prototype = {
     this.notify(path, value, oldValue);
   },
 
-  __getBinding (path) {
-    let binding;
-
-    let segments = path.split('.');
-
-    let bindings = this.__templateBindings;
-    let found = segments.every(segment => {
-      let currentBinding = binding ? binding.paths[segment] : bindings[segment];
-      if (!currentBinding) {
-        return false;
-      }
-
-      binding = currentBinding;
-      return true;
-    }, null);
-
-    if (found) {
-      return binding;
-    }
-  },
-
   notify (path, value, oldValue) {
     try {
-      let binding = this.__getBinding(path);
+      let binding = this.__templateGetBinding(path);
       if (binding) {
         binding.walkEffect(value);
       }
@@ -187,14 +173,19 @@ T.prototype = {
     let len = this.__templateFragment.childNodes.length;
     for (let i = 0; i < len; i++) {
       let node = this.__templateFragment.childNodes[i];
-      if (node.nodeType === window.Node.ELEMENT_NODE) {
-        this.__parseElementAnnotations(node);
-      } else {
-        this.__parseTextAnnotations(node);
+      switch (node.nodeType) {
+        case Node.ELEMENT_NODE:
+          this.__parseElementAnnotations(node);
+          break;
+        case Node.TEXT_NODE:
+          this.__parseTextAnnotations(node);
+          break;
       }
     }
 
-    Object.keys(this.__templateBindings).forEach(key => this.notify(key, this.get(key)));
+    Object.keys(this.__templateBindings).forEach(key => {
+      this.notify(key, this.get(key));
+    });
   },
 
   __parseEventAnnotations (element, attrName) {
@@ -304,8 +295,8 @@ T.prototype = {
     return this.__templateAnnotate(expr, accessor);
   },
 
-  __templateGetBinding (name) {
-    let segments = name.split('.');
+  __templateGetBinding (path) {
+    let segments = path.split('.');
     let bindings;
     let binding;
 

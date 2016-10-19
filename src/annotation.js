@@ -7,10 +7,11 @@ class Annotation {
 
   effect (value) {
     if (this.accessor) {
+      let value = this.expr.invoke(this.model);
       // FIXME implement composite annotation
       // FIXME implement filtered annotation
       // FIXME implement function type annotation
-      this.accessor.set(this.expr.invoke(this.model));
+      this.accessor.set(value);
     } else {
       this.expr.invoke(this.model);
     }

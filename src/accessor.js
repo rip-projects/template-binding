@@ -1,21 +1,29 @@
 /* globals Node */
 
-class Accessor {
+class BaseAccessor {
   constructor (node, name) {
     this.node = node;
     this.name = name;
   }
 
   set (value) {
-    this.node[this.name] = value;
+    if (typeof this.node.set === 'function') {
+      this.node.set(this.name, value);
+    } else {
+      this.node[this.name] = value;
+    }
   }
 
   get () {
-    return this.node[this.name];
+    if (typeof this.node.get === 'function') {
+      return this.node.get(this.name);
+    } else {
+      return this.node[this.name];
+    }
   }
 }
 
-class TextAccessor extends Accessor {
+class TextAccessor extends BaseAccessor {
   constructor (node) {
     super(node, 'textContent');
   }
@@ -29,17 +37,13 @@ class TextAccessor extends Accessor {
   }
 }
 
-class ValueAccessor extends Accessor {
+class ValueAccessor extends BaseAccessor {
   set (value) {
-    this.node.value = value || '';
-  }
-
-  get () {
-    return this.node.value;
+    super.set(value || '');
   }
 }
 
-class AttributeAccessor extends Accessor {
+class AttributeAccessor extends BaseAccessor {
   constructor (node, name) {
     super(node, name.slice(0, -1));
   }
@@ -63,9 +67,11 @@ function get (node, name) {
       case Node.ELEMENT_NODE:
         if (name.endsWith('$')) {
           return new AttributeAccessor(node, name);
+        } else if (name === 'value') {
+          return new ValueAccessor(node, name);
         }
 
-        return new ValueAccessor(node, name);
+        return new BaseAccessor(node, name);
       case Node.TEXT_NODE:
         if (node.parentElement && node.parentElement.nodeName === 'TEXTAREA') {
           return new ValueAccessor(node.parentElement, 'value');
@@ -76,9 +82,9 @@ function get (node, name) {
         throw new Error(`Unimplemented resolving accessor for nodeType: ${node.nodeType}`);
     }
   } else {
-    return new Accessor(node, name);
+    return new BaseAccessor(node, name);
   }
 }
 
-module.exports = Accessor;
+module.exports = BaseAccessor;
 module.exports.get = get;

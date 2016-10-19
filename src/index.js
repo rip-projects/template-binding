@@ -59,6 +59,7 @@ T.prototype = {
     // do below only if template is exists
     this.__template = fixTemplate(template);
     this.__templateFragment = document.importNode(this.__template.content, true);
+    this.__templateChildNodes = [].slice.call(this.__templateFragment.childNodes);
 
     this.__parseAnnotations();
 
@@ -82,7 +83,7 @@ T.prototype = {
   },
 
   render (content) {
-    if (!this.__templateFragment) {
+    if (!this.__template) {
       return;
     }
 
@@ -110,6 +111,12 @@ T.prototype = {
     }
 
     this.__templateMarker.parentElement.insertBefore(this.__templateFragment, this.__templateMarker);
+  },
+
+  __templateUninitialize () {
+    this.__templateChildNodes.forEach(node => {
+      node.parentElement.removeChild(node);
+    });
   },
 
   get (path) {
@@ -173,10 +180,6 @@ T.prototype = {
   __parseAnnotations () {
     // this.__templateAnnotatedElements = [];
 
-    // [].forEach.call(this.__templateFragment.querySelectorAll('*'), (el) => {
-    //   console.warn(this.is, !!el.__templateModel, el);
-    // });
-
     let len = this.__templateFragment.childNodes.length;
     for (let i = 0; i < len; i++) {
       let node = this.__templateFragment.childNodes[i];
@@ -217,7 +220,7 @@ T.prototype = {
     // clone attributes to array first then foreach because we will remove
     // attribute later if already processed
     // this hack to make sure when attribute removed the attributes index doesnt shift.
-    return Array.prototype.slice.call(element.attributes).reduce((annotated, attr) => {
+    return [].slice.call(element.attributes).reduce((annotated, attr) => {
       let attrName = attr.name;
 
       if (attrName.indexOf('(') === 0) {

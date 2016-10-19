@@ -29,17 +29,27 @@ class TextAccessor extends BaseAccessor {
   }
 
   set (value) {
-    this.node.textContent = value || '';
+    this.node.textContent = typeof value === 'undefined' ? '' : value;
+  }
+}
+
+class HTMLAccessor extends BaseAccessor {
+  set (value) {
+    this.node.innerHTML = typeof value === 'undefined' ? '' : value;
   }
 
   get () {
-    return this.node.textContext;
+    return this.node.innerHTML;
   }
 }
 
 class ValueAccessor extends BaseAccessor {
+  constructor (node) {
+    super(node, 'value');
+  }
+
   set (value) {
-    super.set(value || '');
+    super.set(typeof value === 'undefined' ? '' : value);
   }
 }
 
@@ -68,13 +78,17 @@ function get (node, name) {
         if (name.endsWith('$')) {
           return new AttributeAccessor(node, name);
         } else if (name === 'value') {
-          return new ValueAccessor(node, name);
+          return new ValueAccessor(node);
+        } else if (name === 'text') {
+          return new TextAccessor(node);
+        } else if (name === 'html') {
+          return new HTMLAccessor(node, name);
         }
 
         return new BaseAccessor(node, name);
       case Node.TEXT_NODE:
         if (node.parentElement && node.parentElement.nodeName === 'TEXTAREA') {
-          return new ValueAccessor(node.parentElement, 'value');
+          return new ValueAccessor(node.parentElement);
         }
 
         return new TextAccessor(node);

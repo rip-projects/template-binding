@@ -138,6 +138,19 @@ T.prototype = {
   },
 
   set (path, value) {
+    if (!path) {
+      return;
+    }
+
+    if (typeof path === 'object') {
+      for (let i in path) {
+        if (path.hasOwnProperty(i)) {
+          this.set(i, path[i]);
+        }
+      }
+      return;
+    }
+
     let oldValue = this.get(path);
 
     if (value === oldValue) {

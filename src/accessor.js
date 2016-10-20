@@ -77,12 +77,12 @@ function get (node, name) {
       case Node.ELEMENT_NODE:
         if (name.endsWith('$')) {
           return new AttributeAccessor(node, name);
-        } else if (name === 'value') {
-          return new ValueAccessor(node);
         } else if (name === 'text') {
           return new TextAccessor(node);
         } else if (name === 'html') {
           return new HTMLAccessor(node, name);
+        } else if (name === 'value' && node.nodeName === 'INPUT') {
+          return new ValueAccessor(node);
         }
 
         return new BaseAccessor(node, name);

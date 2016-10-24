@@ -19,9 +19,9 @@ function slotName (element) {
 }
 
 function slotAppend (slot, node, root) {
-  if (!slot.__appended) {
-    slot.__appended = true;
-    slot.__fallbackContent = slot.innerHTML;
+  if (!slot.__slotHasChildren) {
+    slot.__slotHasChildren = true;
+    slot.__slotFallbackContent = slot.innerHTML;
     slot.innerHTML = '';
   }
 
@@ -44,13 +44,24 @@ function T (template, host, marker) {
 }
 
 T.prototype = {
+  get $ () {
+    return this.__templateHost.getElementsByTagName('*');
+  },
+
   __templateInitialize (template, host, marker) {
+    // if (this.is === 'ss-notifications') {
+    //   window.debug = true;
+    // }
+    //
+    // if (window.debug) {
+    //   console.log(this.is);
+    // }
+
     this.__templateId = nextId();
     // this.__templateAnnotatedElements = [];
     this.__templateBindings = {};
     this.__templateHost = host || (template ? template.parentElement : null);
     this.__templateMarker = marker;
-    this.$ = {};
 
     if (!template) {
       return;
@@ -60,7 +71,6 @@ T.prototype = {
     this.__template = fixTemplate(template);
     this.__templateFragment = document.importNode(this.__template.content, true);
     this.__templateChildNodes = [].slice.call(this.__templateFragment.childNodes);
-
     this.__parseAnnotations();
 
     if (marker) {
@@ -223,6 +233,7 @@ T.prototype = {
     let context = this;
     let expr = Expr.getFn(attrValue, [], true);
 
+    // console.log(this, element);
     // TODO might be slow or memory leak setting event listener to inside element
     element.addEventListener(eventName, function (evt) {
       return expr.invoke(context, { evt });
@@ -251,18 +262,15 @@ T.prototype = {
     let annotated = false;
     let scoped = element.__templateModel;
 
-    if (!scoped) {
-      element.classList.add(`${this.__templateHost.is}__scope`);
-      element.__templateModel = this;
+    if (scoped) {
+      return annotated;
+    }
 
-      // populate $
-      if (element.id && !this.$[element.id]) {
-        this.$[element.id] = element;
-      }
+    // element.classList.add(`${this.__templateHost.is || 'template'}__scope`);
+    element.__templateModel = this;
 
-      if (element.attributes && element.attributes.length) {
-        annotated = this.__parseAttributeAnnotations(element) || annotated;
-      }
+    if (element.attributes && element.attributes.length) {
+      annotated = this.__parseAttributeAnnotations(element) || annotated;
     }
 
     if (element.childNodes && element.childNodes.length) {
@@ -270,28 +278,26 @@ T.prototype = {
       let childNodesLength = childNodes.length;
 
       for (let i = 0; i < childNodesLength; i++) {
-        let childNode = childNodes[i];
-
-        switch (childNode.nodeType) {
-          case Node.TEXT_NODE:
-            if (!scoped) {
-              annotated = this.__parseTextAnnotations(childNode) || annotated;
-            }
-            break;
-          case Node.ELEMENT_NODE:
-            annotated = this.__parseElementAnnotations(childNode) || annotated;
-            break;
-          default:
-            // noop
-        }
+        annotated = this.__parseNodeAnnotations(childNodes[i]) || annotated;
       }
     }
 
-    // if (annotated) {
-    //   this.__templateAnnotatedElements.push(element);
-    // }
+    [].forEach.call(element.getElementsByTagName('slot'), slot => {
+      [].forEach.call(slot.childNodes, node => {
+        annotated = this.__parseNodeAnnotations(node) || annotated;
+      });
+    });
 
     return annotated;
+  },
+
+  __parseNodeAnnotations (node) {
+    switch (node.nodeType) {
+      case Node.TEXT_NODE:
+        return this.__parseTextAnnotations(node);
+      case Node.ELEMENT_NODE:
+        return this.__parseElementAnnotations(node);
+    }
   },
 
   __parseTextAnnotations (node) {

@@ -33,6 +33,30 @@ class TextAccessor extends BaseAccessor {
   }
 }
 
+class ClassAccessor extends BaseAccessor {
+  set (value) {
+    if (value) {
+      this.node.classList.add(this.name);
+    } else {
+      this.node.classList.remove(this.name);
+    }
+  }
+
+  get () {
+    throw new Error('Unimplemented');
+  }
+}
+
+class StyleAccessor extends BaseAccessor {
+  set (value) {
+    this.node.style[this.name] = value || '';
+  }
+
+  get () {
+    throw new Error('Unimplemented');
+  }
+}
+
 class HTMLAccessor extends BaseAccessor {
   set (value) {
     this.node.innerHTML = typeof value === 'undefined' ? '' : value;
@@ -83,6 +107,12 @@ function get (node, name) {
           return new HTMLAccessor(node, name);
         } else if (name === 'value' && node.nodeName === 'INPUT') {
           return new ValueAccessor(node);
+        }
+
+        if (name.startsWith('class.')) {
+          return new ClassAccessor(node, name.split('.').splice(1).join('.'));
+        } else if (name.startsWith('style.')) {
+          return new StyleAccessor(node, name.split('.').splice(1).join('.'));
         }
 
         return new BaseAccessor(node, name);

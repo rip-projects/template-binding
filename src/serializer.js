@@ -49,6 +49,7 @@ function deserialize (value, type) {
       break;
 
     case Date:
+      console.log('>>>', value);
       value = new Date(value);
       break;
 

@@ -1,5 +1,6 @@
 /* globals Node, HTMLUnknownElement */
 const Expr = require('./expr');
+const Filter = require('./filter');
 const Binding = require('./binding');
 const Accessor = require('./accessor');
 const Annotation = require('./annotation');
@@ -49,16 +50,7 @@ T.prototype = {
   },
 
   __templateInitialize (template, host, marker) {
-    // if (this.is === 'ss-notifications') {
-    //   window.debug = true;
-    // }
-    //
-    // if (window.debug) {
-    //   console.log(this.is);
-    // }
-
     this.__templateId = nextId();
-    // this.__templateAnnotatedElements = [];
     this.__templateBindings = {};
     this.__templateHost = host || (template ? template.parentElement : null);
     this.__templateMarker = marker;
@@ -129,12 +121,38 @@ T.prototype = {
     });
   },
 
+  all (obj) {
+    for (let i in obj) {
+      if (obj.hasOwnProperty(i)) {
+        this.set(i, obj[i]);
+      }
+    }
+  },
+
+  __templateGetPathAsArray (path) {
+    if (!path) {
+      throw new Error(`Unknown path ${path} to set to ${this.is}`);
+    }
+
+    if (typeof path !== 'string') {
+      return path;
+    }
+
+    return path.split('.');
+  },
+
+  __templateGetPathAsString (path) {
+    if (typeof path === 'string') {
+      return path;
+    }
+
+    return path.join('.');
+  },
+
   get (path) {
     let object = this;
 
-    let segments = path.split('.');
-
-    segments.some(segment => {
+    this.__templateGetPathAsArray(path).some(segment => {
       if (object === undefined || object === null) {
         object = undefined;
         return true;
@@ -148,18 +166,7 @@ T.prototype = {
   },
 
   set (path, value) {
-    if (!path) {
-      return;
-    }
-
-    if (typeof path === 'object') {
-      for (let i in path) {
-        if (path.hasOwnProperty(i)) {
-          this.set(i, path[i]);
-        }
-      }
-      return;
-    }
+    path = this.__templateGetPathAsArray(path);
 
     let oldValue = this.get(path);
 
@@ -169,9 +176,7 @@ T.prototype = {
 
     let object = this;
 
-    let segments = path.split('.');
-
-    segments.slice(0, -1).forEach(segment => {
+    path.slice(0, -1).forEach(segment => {
       if (!object) {
         return;
       }
@@ -182,14 +187,18 @@ T.prototype = {
       object = object[segment];
     });
 
-    let property = segments.slice(-1).pop();
+    let property = path.slice(-1).pop();
 
     object[property] = value;
 
-    this.notify(path, value, oldValue);
+    this.notify(path, value);
   },
 
-  notify (path, value, oldValue) {
+  notify (path, value) {
+    path = this.__templateGetPathAsString(path);
+
+    // console.log(this.__getId(), '<notify>', path, '?', value, `<${typeof value}>`);
+
     try {
       let binding = this.__templateGetBinding(path);
       if (binding) {
@@ -352,6 +361,7 @@ if (typeof window === 'object') {
 }
 
 module.exports = T;
+module.exports.Filter = Filter;
 module.exports.Accessor = Accessor;
 module.exports.Expr = Expr;
 module.exports.Token = Token;

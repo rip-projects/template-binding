@@ -327,10 +327,15 @@ T.prototype = {
       return false;
     }
 
+    if (expr.constant) {
+      accessor.set(expr.invoke(this));
+      return false;
+    }
+
     // annotate every paths
     let annotation = new Annotation(this, expr, accessor);
 
-    expr.annotatedPaths.forEach(arg => this.__templateGetBinding(arg.name).annotations.push(annotation));
+    expr.vpaths.forEach(arg => this.__templateGetBinding(arg.name).annotations.push(annotation));
 
     return true;
   },

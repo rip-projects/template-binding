@@ -49,8 +49,11 @@ function deserialize (value, type) {
       break;
 
     case Date:
-      console.log('>>>', value);
       value = new Date(value);
+      break;
+
+    case Function:
+      value = new Function(value);
       break;
 
     // behave like default for now

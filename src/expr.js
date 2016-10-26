@@ -10,20 +10,6 @@ class Expr {
     this.args = [];
     this.filters = [];
     this.value = value;
-    // this.unwrapped = Boolean(unwrapped);
-
-    // TODO support expr with function or others
-    // let valType = typeof value;
-    // if (valType === 'function') {
-    //   this.type = 'm';
-    //   return;
-    // } else if (valType !== 'string') {
-    //   // validate args
-    //   return;
-    // }
-
-    // cleanse value
-    // value = value.trim();
 
     if (type === 's') {
       return;
@@ -36,18 +22,10 @@ class Expr {
       return Filter.get(word.trim());
     });
 
-    // if (!this.unwrapped) {
-    //   if (value[0] !== '[' && value[0] !== '{') {
-    //     return;
-    //   }
-    //   token = value.slice(2, -2).trim();
-    //   this.mode = value[0];
-    // }
-
     if (token.indexOf('(') < 0) {
       this.type = 'p';
       this.name = token;
-      this.args.push(new Token(token));
+      this.args.push(Token.get(token));
     } else {
       // force mode to '[' when type is !p
       this.mode = '[';
@@ -61,23 +39,27 @@ class Expr {
     }
   }
 
-  get annotatedPaths () {
-    if (!this._annotatedPaths) {
-      let annotatedPaths = [];
+  get constant () {
+    return this.vpaths.length !== this.args.length;
+  }
+
+  get vpaths () {
+    if (!this._vpaths) {
+      let paths = [];
       this.args.forEach(arg => {
-        if (arg.type === 'v' && annotatedPaths.indexOf(arg.name) === -1) {
-          annotatedPaths.push(arg);
+        if (arg.type === 'v' && paths.indexOf(arg.name) === -1) {
+          paths.push(arg);
         }
       });
-      this._annotatedPaths = annotatedPaths;
+      this._vpaths = paths;
     }
 
-    return this._annotatedPaths;
+    return this._vpaths;
   }
 
   invoke (context, otherArgs) {
     if (this.type === 'p') {
-      let val = typeof context.get === 'function' ? context.get(this.name) : context[this.name];
+      let val = this.args[0].value(context, otherArgs);
       return this.filters.reduce((val, filter) => filter.invoke(val), val);
     }
 
@@ -129,9 +111,6 @@ function get (value, unwrapped) {
 }
 
 function getFn (value, args, unwrapped) {
-  // if (typeof value === 'function') {
-  //   return get(value, unwrapped);
-  // }
   return get(value.indexOf('(') === -1 ? (value + '(' + args.join(', ') + ')') : value, unwrapped);
 }
 
@@ -150,7 +129,7 @@ function rawTokenize (str) {
 }
 
 function tokenize (str) {
-  return rawTokenize(str).map(token => new Token(token));
+  return rawTokenize(str).map(token => Token.get(token));
 }
 
 module.exports = Expr;

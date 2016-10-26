@@ -20,27 +20,33 @@ class Token {
       return this._value;
     }
 
-    if (context) {
-      let val = context.get ? context.get(this.name) : context[this.name];
-      if (typeof val !== 'undefined') {
-        return val;
-      }
+    let val = valueOf(context, this.name);
+    if (typeof val !== 'undefined') {
+      return val;
     }
 
-    if (others) {
-      let val = others.get ? others.get(this.name) : others[this.name];
-      if (typeof val !== 'undefined') {
-        return val;
-      }
+    val = valueOf(others, this.name);
+    if (typeof val !== 'undefined') {
+      return val;
     }
 
     return;
   }
 }
 
+function valueOf (context, key) {
+  if (context) {
+    return typeof context.get === 'function' ? context.get(key) : context[key];
+  }
+}
+
+Token.CACHE = {};
+
 function get (name) {
-  // FIXME implement cache
-  return new Token(name);
+  if (!Token.CACHE[name]) {
+    Token.CACHE[name] = new Token(name);
+  }
+  return Token.CACHE[name];
 }
 
 module.exports = Token;

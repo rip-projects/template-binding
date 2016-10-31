@@ -36,4 +36,4 @@ const registry = {
   slice: (val, begin, end) => Array.prototype.slice.call(val || [], begin, end),
 };
 
-module.exports = Filter;
+export default Filter;

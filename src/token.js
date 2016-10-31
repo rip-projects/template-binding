@@ -1,6 +1,11 @@
-const GLOBAL = global || window;
-
 class Token {
+  static get (name) {
+    if (!Token.CACHE[name]) {
+      Token.CACHE[name] = new Token(name);
+    }
+    return Token.CACHE[name];
+  }
+
   constructor (name) {
     this.name = name;
     try {
@@ -14,7 +19,7 @@ class Token {
   }
 
   value (context, others) {
-    context = context || GLOBAL;
+    context = context || window;
 
     if (this.type === 's') {
       return this._value;
@@ -42,12 +47,4 @@ function valueOf (context, key) {
 
 Token.CACHE = {};
 
-function get (name) {
-  if (!Token.CACHE[name]) {
-    Token.CACHE[name] = new Token(name);
-  }
-  return Token.CACHE[name];
-}
-
-module.exports = Token;
-module.exports.get = get;
+export default Token;

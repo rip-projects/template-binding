@@ -1,11 +1,11 @@
 /* globals Node, HTMLUnknownElement */
-const Expr = require('./expr');
-const Filter = require('./filter');
-const Binding = require('./binding');
-const Accessor = require('./accessor');
-const Annotation = require('./annotation');
-const Token = require('./token');
-const Serializer = require('./serializer');
+import Expr from './expr';
+import Filter from './filter';
+import Binding from './binding';
+import Accessor from './accessor';
+import Annotation from './annotation';
+import Token from './token';
+import { serialize, deserialize } from './serializer';
 
 const SLOT_SUPPORTED = 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof HTMLUnknownElement);
 
@@ -26,12 +26,16 @@ function slotAppend (slot, node, root) {
     slot.innerHTML = '';
   }
 
-  slot.appendChild(node);
+  if (node instanceof Node) {
+    slot.appendChild(node);
+  } else {
+    node.forEach(node => slot.appendChild(node));
+  }
 }
 
-function elementSlot (element) {
-  return SLOT_SUPPORTED ? element.slot : element.getAttribute('slot');
-}
+// function elementSlot (element) {
+//   return SLOT_SUPPORTED ? element.slot : element.getAttribute('slot');
+// }
 
 function fixTemplate (template) {
   if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
@@ -42,83 +46,23 @@ function fixTemplate (template) {
 
 function T (template, host, marker) {
   this.__templateInitialize(template, host, marker);
+  this.__templateRender();
 }
+
+T.Filter = Filter;
+T.Accessor = Accessor;
+T.Expr = Expr;
+T.Token = Token;
+T.serialize = serialize;
+T.deserialize = deserialize;
 
 T.prototype = {
   get $ () {
     return this.__templateHost.getElementsByTagName('*');
   },
 
-  __templateInitialize (template, host, marker) {
-    this.__templateId = nextId();
-    this.__templateBindings = {};
-    this.__templateHost = host || (template ? template.parentElement : null);
-    this.__templateMarker = marker;
-
-    if (!template) {
-      return;
-    }
-
-    // do below only if template is exists
-    this.__template = fixTemplate(template);
-    this.__templateFragment = document.importNode(this.__template.content, true);
-    this.__templateChildNodes = [].slice.call(this.__templateFragment.childNodes);
-    this.__parseAnnotations();
-
-    if (marker) {
-      return;
-    }
-
-    if (this.__template.parentElement === this.__templateHost) {
-      // when template parent is template host, it means that template is specific template
-      // then use template as marker
-      this.__templateMarker = this.__template;
-    } else {
-      // when template is not child of host, put marker to host
-      this.__templateMarker = document.createComment(`marker-${this.__templateId}`);
-      this.__templateHost.appendChild(this.__templateMarker);
-    }
-  },
-
   $$ (selector) {
     return this.querySelector(selector);
-  },
-
-  render (content) {
-    if (!this.__template) {
-      return;
-    }
-
-    if (content) {
-      try {
-        [].forEach.call(this.__templateFragment.querySelectorAll('slot'), slot => {
-          let name = slotName(slot);
-          if (name) {
-            content.forEach(node => {
-              if (node.nodeType === Node.ELEMENT_NODE && name === elementSlot(node)) {
-                slotAppend(slot, node, this.__templateFragment);
-              }
-              // TODO query to childnodes looking for slot
-            });
-          } else {
-            content.forEach(node => {
-              slotAppend(slot, node, this.__templateFragment);
-            });
-          }
-        });
-      } catch (err) {
-        console.error(err.stack);
-        throw err;
-      }
-    }
-
-    this.__templateMarker.parentElement.insertBefore(this.__templateFragment, this.__templateMarker);
-  },
-
-  __templateUninitialize () {
-    this.__templateChildNodes.forEach(node => {
-      node.parentElement.removeChild(node);
-    });
   },
 
   all (obj) {
@@ -127,26 +71,6 @@ T.prototype = {
         this.set(i, obj[i]);
       }
     }
-  },
-
-  __templateGetPathAsArray (path) {
-    if (!path) {
-      throw new Error(`Unknown path ${path} to set to ${this.is}`);
-    }
-
-    if (typeof path !== 'string') {
-      return path;
-    }
-
-    return path.split('.');
-  },
-
-  __templateGetPathAsString (path) {
-    if (typeof path === 'string') {
-      return path;
-    }
-
-    return path.join('.');
   },
 
   get (path) {
@@ -197,7 +121,7 @@ T.prototype = {
   notify (path, value) {
     path = this.__templateGetPathAsString(path);
 
-    // console.log(this.__getId(), '<notify>', path, '?', value, `<${typeof value}>`);
+    // console.log(`${this.is}:${this.__id}`, '<notify>', path, '?', value, `<${typeof value}>`);
 
     try {
       let binding = this.__templateGetBinding(path);
@@ -209,12 +133,106 @@ T.prototype = {
     }
   },
 
-  __parseAnnotations () {
-    // this.__templateAnnotatedElements = [];
+  __templateInitialize (template, host, marker) {
+    this.__templateId = nextId();
+    this.__templateBindings = {};
+    this.__templateHost = host || (template ? template.parentElement : null);
+    this.__templateMarker = marker;
 
+    if (!template) {
+      return;
+    }
+
+    // do below only if template is exists
+    this.__template = fixTemplate(template);
+    this.__templateChildNodes = [];
+
+    this.__templateFragment = document.importNode(this.__template.content, true);
+    this.__parseAnnotations();
+
+    if (marker) {
+      return;
+    }
+
+    if (this.__template.parentElement === this.__templateHost) {
+      // when template parent is template host, it means that template is specific template
+      // then use template as marker
+      this.__templateMarker = this.__template;
+    } else {
+      // when template is not child of host, put marker to host
+      this.__templateMarker = document.createComment(`marker-${this.__templateId}`);
+      this.__templateHost.appendChild(this.__templateMarker);
+    }
+  },
+
+  __templateRender (contentFragment) {
+    if (!this.__template) {
+      return;
+    }
+
+    // TODO separate or resolve this at parseAnnotation
+    if (contentFragment && contentFragment instanceof window.DocumentFragment) {
+      try {
+        [].forEach.call(this.__templateFragment.querySelectorAll('slot'), slot => {
+          let name = slotName(slot);
+          if (name) {
+            let els = contentFragment.querySelectorAll(`[slot="${name}"]`);
+            slotAppend(slot, els, this.__templateFragment);
+            // contentFragment.forEach(node => {
+            //   if (node.nodeType === Node.ELEMENT_NODE && name === elementSlot(node)) {
+            //     slotAppend(slot, node, this.__templateFragment);
+            //   }
+            //   // TODO query to childnodes looking for slot
+            // });
+          } else {
+            slotAppend(slot, contentFragment, this.__templateFragment);
+            // contentFragment.forEach(node => {
+            //   slotAppend(slot, node, this.__templateFragment);
+            // });
+          }
+        });
+      } catch (err) {
+        console.error(err.stack);
+        throw err;
+      }
+    }
+
+    this.__templateMarker.parentElement.insertBefore(this.__templateFragment, this.__templateMarker);
+  },
+
+  __templateUninitialize () {
+    this.__templateChildNodes.forEach(node => {
+      node.parentElement.removeChild(node);
+    });
+  },
+
+  __templateGetPathAsArray (path) {
+    if (!path) {
+      throw new Error(`Unknown path ${path} to set to ${this.is}`);
+    }
+
+    if (typeof path !== 'string') {
+      return path;
+    }
+
+    return path.split('.');
+  },
+
+  __templateGetPathAsString (path) {
+    if (typeof path === 'string') {
+      return path;
+    }
+
+    return path.join('.');
+  },
+
+  __parseAnnotations () {
     let len = this.__templateFragment.childNodes.length;
     for (let i = 0; i < len; i++) {
       let node = this.__templateFragment.childNodes[i];
+
+      this.__templateChildNodes.push(node);
+
       switch (node.nodeType) {
         case Node.ELEMENT_NODE:
           this.__parseElementAnnotations(node);
@@ -244,8 +262,8 @@ T.prototype = {
 
     // console.log(this, element);
     // TODO might be slow or memory leak setting event listener to inside element
-    element.addEventListener(eventName, function (evt) {
-      return expr.invoke(context, { evt });
+    element.addEventListener(eventName, evt => {
+      expr.invoke(context, { evt });
     }, true);
   },
 
@@ -269,13 +287,13 @@ T.prototype = {
 
   __parseElementAnnotations (element) {
     let annotated = false;
+
     let scoped = element.__templateModel;
 
     if (scoped) {
       return annotated;
     }
 
-    // element.classList.add(`${this.__templateHost.is || 'template'}__scope`);
     element.__templateModel = this;
 
     if (element.attributes && element.attributes.length) {
@@ -328,12 +346,17 @@ T.prototype = {
     }
 
     if (expr.constant) {
-      accessor.set(expr.invoke(this));
+      let val = expr.invoke(this);
+      accessor.set(val);
       return false;
     }
 
     // annotate every paths
     let annotation = new Annotation(this, expr, accessor);
+
+    if (expr.type === 'm') {
+      this.__templateGetBinding(expr.fn.name).annotations.push(annotation);
+    }
 
     expr.vpaths.forEach(arg => this.__templateGetBinding(arg.name).annotations.push(annotation));
 
@@ -365,9 +388,4 @@ if (typeof window === 'object') {
   window.T = T;
 }
 
-module.exports = T;
-module.exports.Filter = Filter;
-module.exports.Accessor = Accessor;
-module.exports.Expr = Expr;
-module.exports.Token = Token;
-module.exports.Serializer = Serializer;
+export default T;

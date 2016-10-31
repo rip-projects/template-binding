@@ -1,7 +1,45 @@
-const Token = require('./token');
-const Filter = require('./filter');
+import Token from './token';
+import Filter from './filter';
 
 class Expr {
+  static get (value, unwrapped) {
+    value = (value || '').trim();
+
+    if (unwrapped) {
+      return _get(value, '[', 'v');
+    }
+
+    let mode = value[0];
+    if (mode === '[' || mode === '{') {
+      value = value.slice(2, -2).trim();
+      return _get(value, mode, 'v');
+    }
+
+    return _get(value, '[', 's');
+  }
+
+  static getFn (value, args, unwrapped) {
+    return Expr.get(value.indexOf('(') === -1 ? (value + '(' + args.join(', ') + ')') : value, unwrapped);
+  }
+
+  static rawTokenize (str) {
+    let count = 0;
+    let tokens = [];
+
+    while (str && count++ < 10) {
+      let matches = str.match(/^\s*("[^"]*"|[^,]+),?/);
+
+      str = str.substr(matches[0].length);
+      tokens.push(matches[1].trim());
+    }
+
+    return tokens;
+  }
+
+  static tokenize (str) {
+    return Expr.rawTokenize(str).map(token => Token.get(token));
+  }
+
   constructor (value, mode, type) {
     // define base properties
     this.mode = mode;
@@ -34,13 +72,14 @@ class Expr {
       let matches = token.match(/([^(]+)\(([^)]*)\)/);
 
       this.name = matches[1].trim();
+      this.fn = Token.get(this.name);
 
-      this.args = tokenize(matches[2]);
+      this.args = Expr.tokenize(matches[2]);
     }
   }
 
   get constant () {
-    return this.vpaths.length !== this.args.length;
+    return this.type !== 'm' && this.vpaths.length !== this.args.length;
   }
 
   get vpaths () {
@@ -63,7 +102,7 @@ class Expr {
       return this.filters.reduce((val, filter) => filter.invoke(val), val);
     }
 
-    let fn = context.__templateHost[this.name];
+    let fn = this.fn.value(context, context.__templateHost);
     if (typeof fn !== 'function') {
       throw new Error(`Method is not eligible, ${context.__templateHost.nodeName || '$anonymous'}#${this.name}`);
     }
@@ -94,46 +133,4 @@ function _get (value, mode, type) {
   return expr;
 }
 
-function get (value, unwrapped) {
-  value = (value || '').trim();
-
-  if (unwrapped) {
-    return _get(value, '[', 'v');
-  }
-
-  let mode = value[0];
-  if (mode === '[' || mode === '{') {
-    value = value.slice(2, -2).trim();
-    return _get(value, mode, 'v');
-  }
-
-  return _get(value, '[', 's');
-}
-
-function getFn (value, args, unwrapped) {
-  return get(value.indexOf('(') === -1 ? (value + '(' + args.join(', ') + ')') : value, unwrapped);
-}
-
-function rawTokenize (str) {
-  let count = 0;
-  let tokens = [];
-
-  while (str && count++ < 10) {
-    let matches = str.match(/^\s*("[^"]*"|[^,]+),?/);
-
-    str = str.substr(matches[0].length);
-    tokens.push(matches[1].trim());
-  }
-
-  return tokens;
-}
-
-function tokenize (str) {
-  return rawTokenize(str).map(token => Token.get(token));
-}
-
-module.exports = Expr;
-module.exports.getFn = getFn;
-module.exports.get = get;
-module.exports.rawTokenize = rawTokenize;
-module.exports.tokenize = tokenize;
+export default Expr;

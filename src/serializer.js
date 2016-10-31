@@ -1,3 +1,5 @@
+/* eslint no-new-func: 0 */
+
 function serialize (value) {
   switch (typeof value) {
     case 'boolean':
@@ -64,5 +66,4 @@ function deserialize (value, type) {
   return value;
 }
 
-module.exports.serialize = serialize;
-module.exports.deserialize = deserialize;
+export { serialize, deserialize };

@@ -21,7 +21,7 @@
         .evaluate(() => {
           var tpl = new T(tpl1);
           tpl.bar = 'bar';
-          tpl.render();
+          tpl.__templateRender();
 
           let result = [];
 
@@ -62,7 +62,7 @@
               name: 'superman',
               occupation: 'superhero',
             };
-            tpl.render();
+            tpl.__templateRender();
             let result = [];
             result.push(sandbox2.textContent.trim().split('\n')[0]);
             tpl.set('user.name', 'clark kent');
@@ -101,7 +101,7 @@
           .evaluate(() => {
             let result = [];
             var tpl = new T(tpl3);
-            tpl.render();
+            tpl.__templateRender();
             tpl.set('user.name', 'foo');
             result.push(sandbox3.textContent.trim());
             sandbox3.querySelector('input').value = 'bar';
@@ -140,7 +140,7 @@
             var tpl = new T(tpl4);
             tpl.tapCount = 0;
             tpl.tapped = () => tpl.set('tapCount', tpl.tapCount + 1);
-            tpl.render();
+            tpl.__templateRender();
             sandbox4.querySelector('a').dispatchEvent(new window.Event('click'));
             result.push(sandbox4.querySelector('div').textContent.trim());
             return result;
@@ -169,7 +169,7 @@
           .evaluate(() => {
             let result = [];
             var tpl = new T(tpl5);
-            tpl.render();
+            tpl.__templateRender();
             tpl.set('foo', 'foo');
             tpl.set('bar', 'bar');
             result.push(sandbox5.querySelector('div').foo);

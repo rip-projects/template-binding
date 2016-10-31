@@ -1,6 +1,39 @@
-/* globals Node */
-
 class BaseAccessor {
+  static get (node, name) {
+    if (node && 'nodeType' in node) {
+      switch (node.nodeType) {
+        case window.Node.ELEMENT_NODE:
+          if (name.endsWith('$')) {
+            return new AttributeAccessor(node, name);
+          } else if (name === 'text') {
+            return new TextAccessor(node);
+          } else if (name === 'html') {
+            return new HTMLAccessor(node, name);
+          } else if (name === 'value' && node.nodeName === 'INPUT') {
+            return new ValueAccessor(node);
+          }
+
+          if (name.startsWith('class.')) {
+            return new ClassAccessor(node, name.split('.').splice(1).join('.'));
+          } else if (name.startsWith('style.')) {
+            return new StyleAccessor(node, name.split('.').splice(1).join('.'));
+          }
+
+          return new BaseAccessor(node, name);
+        case window.Node.TEXT_NODE:
+          if (node.parentElement && node.parentElement.nodeName === 'TEXTAREA') {
+            return new ValueAccessor(node.parentElement);
+          }
+
+          return new TextAccessor(node);
+        default:
+          throw new Error(`Unimplemented resolving accessor for nodeType: ${node.nodeType}`);
+      }
+    } else {
+      return new BaseAccessor(node, name);
+    }
+  }
+
   constructor (node, name) {
     this.node = node;
     this.name = name;
@@ -122,40 +155,4 @@ class AttributeAccessor extends BaseAccessor {
   }
 }
 
-function get (node, name) {
-  if (node && 'nodeType' in node) {
-    switch (node.nodeType) {
-      case Node.ELEMENT_NODE:
-        if (name.endsWith('$')) {
-          return new AttributeAccessor(node, name);
-        } else if (name === 'text') {
-          return new TextAccessor(node);
-        } else if (name === 'html') {
-          return new HTMLAccessor(node, name);
-        } else if (name === 'value' && node.nodeName === 'INPUT') {
-          return new ValueAccessor(node);
-        }
-
-        if (name.startsWith('class.')) {
-          return new ClassAccessor(node, name.split('.').splice(1).join('.'));
-        } else if (name.startsWith('style.')) {
-          return new StyleAccessor(node, name.split('.').splice(1).join('.'));
-        }
-
-        return new BaseAccessor(node, name);
-      case Node.TEXT_NODE:
-        if (node.parentElement && node.parentElement.nodeName === 'TEXTAREA') {
-          return new ValueAccessor(node.parentElement);
-        }
-
-        return new TextAccessor(node);
-      default:
-        throw new Error(`Unimplemented resolving accessor for nodeType: ${node.nodeType}`);
-    }
-  } else {
-    return new BaseAccessor(node, name);
-  }
-}
-
-module.exports = BaseAccessor;
-module.exports.get = get;
+export default BaseAccessor;

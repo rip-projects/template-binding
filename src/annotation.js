@@ -9,8 +9,6 @@ class Annotation {
     if (this.accessor) {
       let value = this.expr.invoke(this.model);
       // FIXME implement composite annotation
-      // FIXME implement filtered annotation
-      // FIXME implement function type annotation
       this.accessor.set(value);
     } else {
       this.expr.invoke(this.model);
@@ -18,4 +16,4 @@ class Annotation {
   }
 }
 
-module.exports = Annotation;
+export default Annotation;

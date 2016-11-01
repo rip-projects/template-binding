@@ -106,34 +106,9 @@ class ValueAccessor extends BaseAccessor {
   }
 
   set (value) {
-    var selectable = document.activeElement === this.node;
-    if (!selectable) {
+    if (document.activeElement !== this.node) {
       super.set(typeof value === 'undefined' ? '' : value);
     }
-    //  &&
-    //   this.node.nodeName === 'INPUT' && (
-    //       this.node.type !== 'email' &&
-    //       this.node.type !== 'range' &&
-    //       this.node.type !== 'checkbox'
-    //       );
-    //
-    // var selStart;
-    // var selEnd;
-    // if (selectable) {
-    //   selStart = this.node.selectionStart;
-    //   selEnd = this.node.selectionEnd;
-    // }
-    //
-    // this.node[this.name] = value === undefined ? '' : value;
-    //
-    // if (selectable) {
-    //   this.node.setSelectionRange(selStart, selEnd);
-    //
-    //   // does not work well with below
-    //   // this.context.selectionStart = selStart;
-    //   // this.context.selectionEnd = selStart;
-    // }
-    // super.set(typeof value === 'undefined' ? '' : value);
   }
 }
 

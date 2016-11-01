@@ -1,4 +1,3 @@
-/* globals Node, HTMLUnknownElement */
 import Expr from './expr';
 import Filter from './filter';
 import Binding from './binding';
@@ -6,48 +5,14 @@ import Accessor from './accessor';
 import Annotation from './annotation';
 import Token from './token';
 import { serialize, deserialize } from './serializer';
-
-const SLOT_SUPPORTED = 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof HTMLUnknownElement);
-
-let templateId = 0;
-
-function nextId () {
-  return templateId++;
-}
-
-function slotName (element) {
-  return SLOT_SUPPORTED ? element.name : element.getAttribute('name');
-}
-
-function slotAppend (slot, node, root) {
-  if (!slot.__slotHasChildren) {
-    slot.__slotHasChildren = true;
-    slot.__slotFallbackContent = slot.innerHTML;
-    slot.innerHTML = '';
-  }
-
-  if (node instanceof Node) {
-    slot.appendChild(node);
-  } else {
-    node.forEach(node => slot.appendChild(node));
-  }
-}
-
-// function elementSlot (element) {
-//   return SLOT_SUPPORTED ? element.slot : element.getAttribute('slot');
-// }
-
-function fixTemplate (template) {
-  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
-    window.HTMLTemplateElement.decorate(template);
-  }
-  return template;
-}
+import { slotName, slotAppend } from './slot';
 
 function T (template, host, marker) {
   this.__templateInitialize(template, host, marker);
   this.__templateRender();
 }
+
+window.T = T;
 
 T.Filter = Filter;
 T.Accessor = Accessor;
@@ -121,11 +86,20 @@ T.prototype = {
   notify (path, value) {
     path = this.__templateGetPathAsString(path);
 
-    // console.log(`${this.is}:${this.__id}`, '<notify>', path, '?', value, `<${typeof value}>`);
+    if (!this.__templateReady) {
+      if (this.__templateNotifyOnReady.indexOf(path) === -1) {
+        this.__templateNotifyOnReady.push(path);
+      }
+      return;
+    }
 
     try {
       let binding = this.__templateGetBinding(path);
       if (binding) {
+        if (typeof value === 'undefined') {
+          value = this.get(path);
+        }
+
         binding.walkEffect(value);
       }
     } catch (err) {
@@ -138,6 +112,9 @@ T.prototype = {
     this.__templateBindings = {};
     this.__templateHost = host || (template ? template.parentElement : null);
     this.__templateMarker = marker;
+
+    this.__templateReady = false;
+    this.__templateNotifyOnReady = [];
 
     if (!template) {
       return;
@@ -166,30 +143,24 @@ T.prototype = {
   },
 
   __templateRender (contentFragment) {
+    this.__templateReady = true;
+
     if (!this.__template) {
       return;
     }
 
-    // TODO separate or resolve this at parseAnnotation
+    this.__templateNotifyOnReady.forEach(key => this.notify(key, this.get(key)));
+    this.__templateNotifyOnReady = [];
+
+    let fragment = this.__templateFragment;
+    this.__templateFragment = null;
+
     if (contentFragment && contentFragment instanceof window.DocumentFragment) {
       try {
-        [].forEach.call(this.__templateFragment.querySelectorAll('slot'), slot => {
+        [].forEach.call(fragment.querySelectorAll('slot'), slot => {
           let name = slotName(slot);
-          if (name) {
-            let els = contentFragment.querySelectorAll(`[slot="${name}"]`);
-            slotAppend(slot, els, this.__templateFragment);
-            // contentFragment.forEach(node => {
-            //   if (node.nodeType === Node.ELEMENT_NODE && name === elementSlot(node)) {
-            //     slotAppend(slot, node, this.__templateFragment);
-            //   }
-            //   // TODO query to childnodes looking for slot
-            // });
-          } else {
-            slotAppend(slot, contentFragment, this.__templateFragment);
-            // contentFragment.forEach(node => {
-            //   slotAppend(slot, node, this.__templateFragment);
-            // });
-          }
+          let node = name ? contentFragment.querySelectorAll(`[slot="${name}"]`) : contentFragment;
+          slotAppend(slot, node, fragment);
         });
       } catch (err) {
         console.error(err.stack);
@@ -197,7 +168,7 @@ T.prototype = {
       }
     }
 
-    this.__templateMarker.parentElement.insertBefore(this.__templateFragment, this.__templateMarker);
+    this.__templateMarker.parentElement.insertBefore(fragment, this.__templateMarker);
   },
 
   __templateUninitialize () {
@@ -234,18 +205,14 @@ T.prototype = {
       this.__templateChildNodes.push(node);
 
       switch (node.nodeType) {
-        case Node.ELEMENT_NODE:
+        case window.Node.ELEMENT_NODE:
           this.__parseElementAnnotations(node);
           break;
-        case Node.TEXT_NODE:
+        case window.Node.TEXT_NODE:
           this.__parseTextAnnotations(node);
           break;
       }
     }
-
-    Object.keys(this.__templateBindings).forEach(key => {
-      this.notify(key, this.get(key));
-    });
   },
 
   __parseEventAnnotations (element, attrName) {
@@ -260,7 +227,6 @@ T.prototype = {
     let context = this;
     let expr = Expr.getFn(attrValue, [], true);
 
-    // console.log(this, element);
     // TODO might be slow or memory leak setting event listener to inside element
     element.addEventListener(eventName, evt => {
       expr.invoke(context, { evt });
@@ -271,7 +237,13 @@ T.prototype = {
     // clone attributes to array first then foreach because we will remove
     // attribute later if already processed
     // this hack to make sure when attribute removed the attributes index doesnt shift.
-    return [].slice.call(element.attributes).reduce((annotated, attr) => {
+    let annotated = false;
+
+    let len = element.attributes.length;
+
+    for (let i = 0; i < len; i++) {
+      let attr = element.attributes[i];
+
       let attrName = attr.name;
 
       if (attrName.indexOf('(') === 0) {
@@ -280,9 +252,9 @@ T.prototype = {
         // bind property annotation
         annotated = this.__templateAnnotate(Expr.get(attr.value), Accessor.get(element, attrName)) || annotated;
       }
+    }
 
-      return annotated;
-    }, false);
+    return annotated;
   },
 
   __parseElementAnnotations (element) {
@@ -320,23 +292,16 @@ T.prototype = {
 
   __parseNodeAnnotations (node) {
     switch (node.nodeType) {
-      case Node.TEXT_NODE:
+      case window.Node.TEXT_NODE:
         return this.__parseTextAnnotations(node);
-      case Node.ELEMENT_NODE:
+      case window.Node.ELEMENT_NODE:
         return this.__parseElementAnnotations(node);
     }
   },
 
   __parseTextAnnotations (node) {
     let expr = Expr.get(node.textContent);
-
-    let accessor;
-    if (node.parentElement && node.parentElement.nodeName === 'TEXTAREA') {
-      accessor = Accessor.get(node.parentElement, 'value');
-    } else {
-      accessor = Accessor.get(node);
-    }
-
+    let accessor = Accessor.get(node);
     return this.__templateAnnotate(expr, accessor);
   },
 
@@ -384,8 +349,16 @@ T.prototype = {
   },
 };
 
-if (typeof window === 'object') {
-  window.T = T;
+let templateId = 0;
+function nextId () {
+  return templateId++;
+}
+
+function fixTemplate (template) {
+  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
+    window.HTMLTemplateElement.decorate(template);
+  }
+  return template;
 }
 
 export default T;

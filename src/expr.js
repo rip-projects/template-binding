@@ -10,7 +10,7 @@ class Expr {
     }
 
     let mode = value[0];
-    if (mode === '[' || mode === '{') {
+    if ((mode === '[' || mode === '{') && value[1] === mode) {
       value = value.slice(2, -2).trim();
       return _get(value, mode, 'v');
     }

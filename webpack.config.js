@@ -1,24 +1,31 @@
 const webpack = require('webpack');
-const path = require('path');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+
+const ENV = process.env.NODE_ENV || 'development';
+const ANALYZE = process.env.ANALYZE;
 
 function getPlugins () {
   let plugins = [];
 
-  if (process.env.NODE_ENV === 'production') {
-    plugins.push(new webpack.optimize.UglifyJsPlugin({
-      compress: { warnings: false },
-    }));
-    plugins.push(new webpack.optimize.DedupePlugin());
+  if (ENV === 'production') {
+    plugins.push(
+      new webpack.optimize.UglifyJsPlugin({ compress: { warnings: false } }),
+      new webpack.optimize.DedupePlugin()
+    );
+  } else {
+    if (ANALYZE) {
+      plugins.push(new BundleAnalyzerPlugin());
+    }
   }
 
   return plugins;
 }
 
 module.exports = {
-  entry: path.join(__dirname, 'src', 'index.js'),
+  entry: './src/index.js',
   output: {
-    path: path.join(__dirname, 'dist'),
-    filename: process.env.NODE_ENV === 'production' ? 't.min.js' : 't.js',
+    path: './dist',
+    filename: ENV === 'production' ? 't.min.js' : 't.js',
   },
   devtool: 'source-map',
   plugins: getPlugins(),
@@ -27,9 +34,9 @@ module.exports = {
       {
         test: /\.js$/,
         exclude: /(node_modules|bower_components)/,
-        loader: 'babel-loader',
+        loader: 'babel',
         query: {
-          presets: ['es2015'],
+          cacheDirectory: true,
         },
       },
     ],

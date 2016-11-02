@@ -12,8 +12,6 @@ function T (template, host, marker) {
   this.__templateRender();
 }
 
-window.T = T;
-
 T.Filter = Filter;
 T.Accessor = Accessor;
 T.Expr = Expr;
@@ -171,16 +169,16 @@ T.prototype = {
     this.__templateMarker.parentElement.insertBefore(fragment, this.__templateMarker);
   },
 
-  __templateUninitialize () {
-    this.__templateChildNodes.forEach(node => {
-      node.parentElement.removeChild(node);
-    });
-  },
+  // __templateUninitialize () {
+  //   this.__templateChildNodes.forEach(node => {
+  //     node.parentElement.removeChild(node);
+  //   });
+  // },
 
   __templateGetPathAsArray (path) {
-    if (!path) {
-      throw new Error(`Unknown path ${path} to set to ${this.is}`);
-    }
+    // if (!path) {
+    //   throw new Error(`Unknown path ${path} to set to ${this.is}`);
+    // }
 
     if (typeof path !== 'string') {
       return path;
@@ -198,11 +196,12 @@ T.prototype = {
   },
 
   __parseAnnotations () {
-    let len = this.__templateFragment.childNodes.length;
-    for (let i = 0; i < len; i++) {
-      let node = this.__templateFragment.childNodes[i];
+    this.__templateChildNodes = [ ...this.__templateFragment.childNodes ];
 
-      this.__templateChildNodes.push(node);
+    let len = this.__templateChildNodes.length;
+
+    for (let i = 0; i < len; i++) {
+      let node = this.__templateChildNodes[i];
 
       switch (node.nodeType) {
         case window.Node.ELEMENT_NODE:
@@ -359,6 +358,10 @@ function fixTemplate (template) {
     window.HTMLTemplateElement.decorate(template);
   }
   return template;
+}
+
+if (typeof window !== 'undefined') {
+  window.T = T;
 }
 
 export default T;

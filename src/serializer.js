@@ -1,5 +1,3 @@
-/* eslint no-new-func: 0 */
-
 function serialize (value) {
   switch (typeof value) {
     case 'boolean':
@@ -55,7 +53,7 @@ function deserialize (value, type) {
       break;
 
     case Function:
-      value = new Function(value);
+      value = new Function(value); // eslint-disable-line
       break;
 
     // behave like default for now

@@ -2,8 +2,8 @@ import Token from './token';
 import Filter from './filter';
 
 class Expr {
-  static get (value, unwrapped) {
-    value = (value || '').trim();
+  static get (value = '', unwrapped) {
+    value = value.trim();
 
     if (unwrapped) {
       return _get(value, '[', 'v');

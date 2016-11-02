@@ -1,4 +1,6 @@
-const SLOT_SUPPORTED = 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof window.HTMLUnknownElement);
+const SLOT_SUPPORTED = (typeof window === 'undefined')
+  ? false
+  : 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof window.HTMLUnknownElement);
 
 function slotName (element) {
   return SLOT_SUPPORTED ? element.name : element.getAttribute('name');
@@ -7,8 +9,10 @@ function slotName (element) {
 function slotAppend (slot, node, root) {
   if (!slot.__slotHasChildren) {
     slot.__slotHasChildren = true;
-    slot.__slotFallbackContent = slot.innerHTML;
-    slot.innerHTML = '';
+    slot.__slotFallbackContent = [...slot.childNodes];
+    while (slot.firstChild) {
+      slot.removeChild(slot.firstChild);
+    }
   }
 
   if (node instanceof window.Node) {

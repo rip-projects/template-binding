@@ -8,3 +8,9 @@ This library works as steroid to `<template>`, to do,
 - Annotate template content to properties
 - Bind template content to model object
 - Provide getter setter to model object to adapt annotated template content
+
+# Development
+
+```
+yarn run build
+```

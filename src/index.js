@@ -1,23 +1,29 @@
 import Expr from './expr';
-import Filter from './filter';
 import Binding from './binding';
 import Accessor from './accessor';
 import Annotation from './annotation';
+import Filter from './filter';
 import Token from './token';
-import { serialize, deserialize } from './serializer';
+import Event from './event';
+import { deserialize } from './serializer';
 import { slotName, slotAppend } from './slot';
+
+let templateId = 0;
+function nextId () {
+  return templateId++;
+}
+
+function fixTemplate (template) {
+  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
+    window.HTMLTemplateElement.decorate(template);
+  }
+  return template;
+}
 
 function T (template, host, marker) {
   this.__templateInitialize(template, host, marker);
   this.__templateRender();
 }
-
-T.Filter = Filter;
-T.Accessor = Accessor;
-T.Expr = Expr;
-T.Token = Token;
-T.serialize = serialize;
-T.deserialize = deserialize;
 
 T.prototype = {
   get $ () {
@@ -26,6 +32,14 @@ T.prototype = {
 
   $$ (selector) {
     return this.querySelector(selector);
+  },
+
+  on () {
+    Event(this.__templateHost).on(...arguments);
+  },
+
+  off () {
+    Event(this.__templateHost).off(...arguments);
   },
 
   all (obj) {
@@ -226,10 +240,9 @@ T.prototype = {
     let context = this;
     let expr = Expr.getFn(attrValue, [], true);
 
-    // TODO might be slow or memory leak setting event listener to inside element
-    element.addEventListener(eventName, evt => {
+    this.on(eventName, element, evt => {
       expr.invoke(context, { evt });
-    }, true);
+    });
   },
 
   __parseAttributeAnnotations (element) {
@@ -348,20 +361,13 @@ T.prototype = {
   },
 };
 
-let templateId = 0;
-function nextId () {
-  return templateId++;
-}
+T.Filter = Filter;
+T.Accessor = Accessor;
+T.Token = Token;
+T.Expr = Expr;
+T.Event = Event;
+T.deserialize = deserialize;
 
-function fixTemplate (template) {
-  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
-    window.HTMLTemplateElement.decorate(template);
-  }
-  return template;
-}
-
-if (typeof window !== 'undefined') {
-  window.T = T;
-}
+window.T = T;
 
 export default T;

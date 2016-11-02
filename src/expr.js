@@ -1,9 +1,38 @@
 import Token from './token';
 import Filter from './filter';
 
+const CACHE = {
+  's': {
+    '[': new Map(),
+    '{': new Map(),
+  },
+  'v': {
+    '[': new Map(),
+    '{': new Map(),
+  },
+};
+
+function _get (value, mode, type) {
+  let cache = CACHE[type][mode];
+  if (cache.has(value)) {
+    return cache.get(value);
+  }
+
+  let expr = new Expr(value, mode, type);
+  if (type !== 's') {
+    cache.set(value, expr);
+  }
+
+  return expr;
+}
+
 class Expr {
-  static get (value = '', unwrapped) {
-    value = value.trim();
+  static get CACHE () {
+    return CACHE;
+  }
+
+  static get (value, unwrapped) {
+    value = (value || '').trim();
 
     if (unwrapped) {
       return _get(value, '[', 'v');
@@ -19,7 +48,7 @@ class Expr {
   }
 
   static getFn (value, args, unwrapped) {
-    return Expr.get(value.indexOf('(') === -1 ? (value + '(' + args.join(', ') + ')') : value, unwrapped);
+    return Expr.get(value.indexOf('(') === -1 ? `${value}(${args.join(', ')})` : value, unwrapped);
   }
 
   static rawTokenize (str) {
@@ -113,24 +142,6 @@ class Expr {
 
     return fn.apply(context, args);
   }
-}
-
-Expr.CACHE = {
-  '[s': new Expr('', '[', 's'),
-};
-
-function _get (value, mode, type) {
-  let key = value + mode + type;
-  let expr = Expr.CACHE[key];
-
-  if (!expr) {
-    expr = new Expr(value, mode, type);
-    if (type !== 's') {
-      Expr.CACHE[key] = expr;
-    }
-  }
-
-  return expr;
 }
 
 export default Expr;

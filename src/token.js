@@ -1,20 +1,28 @@
+const CACHE = new Map();
+
 class Token {
+  static get CACHE () {
+    return CACHE;
+  }
+
   static get (name) {
-    if (!Token.CACHE[name]) {
-      Token.CACHE[name] = new Token(name);
+    if (CACHE.has(name)) {
+      return CACHE.get(name);
     }
-    return Token.CACHE[name];
+
+    let token = new Token(name);
+    CACHE.set(name, token);
+    return token;
   }
 
   constructor (name) {
     this.name = name;
     try {
-      let value = JSON.parse(this.name);
+      this._value = JSON.parse(this.name);
       this.type = 's';
-      this._value = value;
     } catch (err) {
-      this.type = 'v';
       this._value = null;
+      this.type = 'v';
     }
   }
 
@@ -44,7 +52,5 @@ function valueOf (context, key) {
     return typeof context.get === 'function' ? context.get(key) : context[key];
   }
 }
-
-Token.CACHE = {};
 
 export default Token;

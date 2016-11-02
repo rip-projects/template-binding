@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "clean": "rm -rf dist",
-    "test": "npm run test:lint",
+    "test": "yarn run test:lint",
     "test:lint": "eslint -- **/*.js",
     "build": "yarn run clean && yarn run test && yarn run build:webpack && NODE_ENV=production yarn run build:webpack",
     "build:webpack": "webpack"

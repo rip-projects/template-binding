@@ -54,10 +54,6 @@
 	
 	var _expr2 = _interopRequireDefault(_expr);
 	
-	var _filter = __webpack_require__(3);
-	
-	var _filter2 = _interopRequireDefault(_filter);
-	
 	var _binding = __webpack_require__(4);
 	
 	var _binding2 = _interopRequireDefault(_binding);
@@ -70,29 +66,42 @@
 	
 	var _annotation2 = _interopRequireDefault(_annotation);
 	
+	var _filter = __webpack_require__(3);
+	
+	var _filter2 = _interopRequireDefault(_filter);
+	
 	var _token = __webpack_require__(2);
 	
 	var _token2 = _interopRequireDefault(_token);
 	
-	var _serializer = __webpack_require__(7);
+	var _event = __webpack_require__(7);
 	
-	var _slot = __webpack_require__(8);
+	var _event2 = _interopRequireDefault(_event);
+	
+	var _serializer = __webpack_require__(8);
+	
+	var _slot = __webpack_require__(9);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 	
+	var templateId = 0;
+	function nextId() {
+	  return templateId++;
+	}
+	
+	function fixTemplate(template) {
+	  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
+	    window.HTMLTemplateElement.decorate(template);
+	  }
+	  return template;
+	}
+	
 	function T(template, host, marker) {
 	  this.__templateInitialize(template, host, marker);
 	  this.__templateRender();
 	}
-	
-	T.Filter = _filter2.default;
-	T.Accessor = _accessor2.default;
-	T.Expr = _expr2.default;
-	T.Token = _token2.default;
-	T.serialize = _serializer.serialize;
-	T.deserialize = _serializer.deserialize;
 	
 	T.prototype = {
 	  get $() {
@@ -101,6 +110,16 @@
 	
 	  $$: function $$(selector) {
 	    return this.querySelector(selector);
+	  },
+	  on: function on() {
+	    var _Event;
+	
+	    (_Event = (0, _event2.default)(this.__templateHost)).on.apply(_Event, arguments);
+	  },
+	  off: function off() {
+	    var _Event2;
+	
+	    (_Event2 = (0, _event2.default)(this.__templateHost)).off.apply(_Event2, arguments);
 	  },
 	  all: function all(obj) {
 	    for (var i in obj) {
@@ -297,10 +316,9 @@
 	    var context = this;
 	    var expr = _expr2.default.getFn(attrValue, [], true);
 	
-	    // TODO might be slow or memory leak setting event listener to inside element
-	    element.addEventListener(eventName, function (evt) {
+	    this.on(eventName, element, function (evt) {
 	      expr.invoke(context, { evt: evt });
-	    }, true);
+	    });
 	  },
 	  __parseAttributeAnnotations: function __parseAttributeAnnotations(element) {
 	    // clone attributes to array first then foreach because we will remove
@@ -419,21 +437,14 @@
 	  }
 	};
 	
-	var templateId = 0;
-	function nextId() {
-	  return templateId++;
-	}
+	T.Filter = _filter2.default;
+	T.Accessor = _accessor2.default;
+	T.Token = _token2.default;
+	T.Expr = _expr2.default;
+	T.Event = _event2.default;
+	T.deserialize = _serializer.deserialize;
 	
-	function fixTemplate(template) {
-	  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
-	    window.HTMLTemplateElement.decorate(template);
-	  }
-	  return template;
-	}
-	
-	if (typeof window !== 'undefined') {
-	  window.T = T;
-	}
+	window.T = T;
 	
 	exports.default = T;
 
@@ -461,14 +472,36 @@
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
+	var CACHE = {
+	  's': {
+	    '[': new Map(),
+	    '{': new Map()
+	  },
+	  'v': {
+	    '[': new Map(),
+	    '{': new Map()
+	  }
+	};
+	
+	function _get(value, mode, type) {
+	  var cache = CACHE[type][mode];
+	  if (cache.has(value)) {
+	    return cache.get(value);
+	  }
+	
+	  var expr = new Expr(value, mode, type);
+	  if (type !== 's') {
+	    cache.set(value, expr);
+	  }
+	
+	  return expr;
+	}
+	
 	var Expr = function () {
 	  _createClass(Expr, null, [{
 	    key: 'get',
-	    value: function get() {
-	      var value = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : '';
-	      var unwrapped = arguments[1];
-	
-	      value = value.trim();
+	    value: function get(value, unwrapped) {
+	      value = (value || '').trim();
 	
 	      if (unwrapped) {
 	        return _get(value, '[', 'v');
@@ -508,6 +541,11 @@
 	      return Expr.rawTokenize(str).map(function (token) {
 	        return _token2.default.get(token);
 	      });
+	    }
+	  }, {
+	    key: 'CACHE',
+	    get: function get() {
+	      return CACHE;
 	    }
 	  }]);
 	
@@ -601,24 +639,6 @@
 	  return Expr;
 	}();
 	
-	Expr.CACHE = {
-	  '[s': new Expr('', '[', 's')
-	};
-	
-	function _get(value, mode, type) {
-	  var key = value + mode + type;
-	  var expr = Expr.CACHE[key];
-	
-	  if (!expr) {
-	    expr = new Expr(value, mode, type);
-	    if (type !== 's') {
-	      Expr.CACHE[key] = expr;
-	    }
-	  }
-	
-	  return expr;
-	}
-	
 	exports.default = Expr;
 
 /***/ },
@@ -635,14 +655,24 @@
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
+	var CACHE = new Map();
+	
 	var Token = function () {
 	  _createClass(Token, null, [{
 	    key: 'get',
 	    value: function get(name) {
-	      if (!Token.CACHE[name]) {
-	        Token.CACHE[name] = new Token(name);
+	      if (CACHE.has(name)) {
+	        return CACHE.get(name);
 	      }
-	      return Token.CACHE[name];
+	
+	      var token = new Token(name);
+	      CACHE.set(name, token);
+	      return token;
+	    }
+	  }, {
+	    key: 'CACHE',
+	    get: function get() {
+	      return CACHE;
 	    }
 	  }]);
 	
@@ -651,12 +681,11 @@
 	
 	    this.name = name;
 	    try {
-	      var value = JSON.parse(this.name);
+	      this._value = JSON.parse(this.name);
 	      this.type = 's';
-	      this._value = value;
 	    } catch (err) {
-	      this.type = 'v';
 	      this._value = null;
+	      this.type = 'v';
 	    }
 	  }
 	
@@ -691,8 +720,6 @@
 	    return typeof context.get === 'function' ? context.get(key) : context[key];
 	  }
 	}
-	
-	Token.CACHE = {};
 	
 	exports.default = Token;
 
@@ -771,7 +798,7 @@
 /* 4 */
 /***/ function(module, exports) {
 
-	'use strict';
+	"use strict";
 	
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
@@ -792,16 +819,16 @@
 	  }
 	
 	  _createClass(Binding, [{
-	    key: 'walkEffect',
+	    key: "walkEffect",
 	    value: function walkEffect(value) {
 	      var _this = this;
 	
 	      this.annotations.forEach(function (annotation) {
-	        try {
-	          annotation.effect(value, _this.model);
-	        } catch (err) {
-	          console.error('Error caught while walk effect annotation: ' + (annotation.expr ? annotation.expr.value : '#unknown') + '\n ' + err.stack);
-	        }
+	        // try {
+	        annotation.effect(value, _this.model);
+	        // } catch (err) {
+	        //   console.error(`Error caught while walk effect annotation: ${annotation.expr ? annotation.expr.value : '#unknown'}\n ${err.stack}`);
+	        // }
 	      });
 	
 	      Object.keys(this.paths).forEach(function (i) {
@@ -1100,6 +1127,357 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+	var _matcher = void 0;
+	var _level = 0;
+	var _id = 0;
+	var _handlers = {};
+	var _delegatorInstances = {};
+	
+	function _addEvent(delegator, type, callback) {
+	  // blur and focus do not bubble up but if you use event capturing
+	  // then you will get them
+	  var useCapture = type === 'blur' || type === 'focus';
+	  delegator.element.addEventListener(type, callback, useCapture);
+	}
+	
+	function _cancel(e) {
+	  e.preventDefault();
+	  e.stopPropagation();
+	}
+	
+	/**
+	 * returns function to use for determining if an element
+	 * matches a query selector
+	 *
+	 * @returns {Function}
+	 */
+	function _getMatcher(element) {
+	  if (_matcher) {
+	    return _matcher;
+	  }
+	
+	  if (element.matches) {
+	    _matcher = element.matches;
+	    return _matcher;
+	  }
+	
+	  if (element.webkitMatchesSelector) {
+	    _matcher = element.webkitMatchesSelector;
+	    return _matcher;
+	  }
+	
+	  if (element.mozMatchesSelector) {
+	    _matcher = element.mozMatchesSelector;
+	    return _matcher;
+	  }
+	
+	  if (element.msMatchesSelector) {
+	    _matcher = element.msMatchesSelector;
+	    return _matcher;
+	  }
+	
+	  if (element.oMatchesSelector) {
+	    _matcher = element.oMatchesSelector;
+	    return _matcher;
+	  }
+	
+	  // if it doesn't match a native browser method
+	  // fall back to the delegator function
+	  _matcher = EventDelegator.matchesSelector;
+	  return _matcher;
+	}
+	
+	/**
+	 * determines if the specified element matches a given selector
+	 *
+	 * @param {Node} element - the element to compare against the selector
+	 * @param {string} selector
+	 * @param {Node} boundElement - the element the listener was attached to
+	 * @returns {void|Node}
+	 */
+	function _matchesSelector(element, selector, boundElement) {
+	  // no selector means this event was bound directly to this element
+	  if (selector === '_root') {
+	    return boundElement;
+	  }
+	
+	  // if we have moved up to the element you bound the event to
+	  // then we have come too far
+	  if (element === boundElement) {
+	    return;
+	  }
+	
+	  // if this is a match then we are done!
+	  if (_getMatcher(element).call(element, selector)) {
+	    return element;
+	  }
+	
+	  // if this element did not match but has a parent we should try
+	  // going up the tree to see if any of the parent elements match
+	  // for example if you are looking for a click on an <a> tag but there
+	  // is a <span> inside of the a tag that it is the target,
+	  // it should still work
+	  if (element.parentNode) {
+	    _level++;
+	    return _matchesSelector(element.parentNode, selector, boundElement);
+	  }
+	}
+	
+	function _addHandler(delegator, event, selector, callback) {
+	  if (!_handlers[delegator.id]) {
+	    _handlers[delegator.id] = {};
+	  }
+	
+	  if (!_handlers[delegator.id][event]) {
+	    _handlers[delegator.id][event] = {};
+	  }
+	
+	  if (!_handlers[delegator.id][event][selector]) {
+	    _handlers[delegator.id][event][selector] = [];
+	  }
+	
+	  _handlers[delegator.id][event][selector].push(callback);
+	}
+	
+	function _removeHandler(delegator, event, selector, callback) {
+	  // if there are no events tied to this element at all
+	  // then don't do anything
+	  if (!_handlers[delegator.id]) {
+	    return;
+	  }
+	
+	  // if there is no event type specified then remove all events
+	  // example: EventDelegator(element).off()
+	  if (!event) {
+	    for (var type in _handlers[delegator.id]) {
+	      if (_handlers[delegator.id].hasOwnProperty(type)) {
+	        _handlers[delegator.id][type] = {};
+	      }
+	    }
+	    return;
+	  }
+	
+	  // if no callback or selector is specified remove all events of this type
+	  // example: EventDelegator(element).off('click')
+	  if (!callback && !selector) {
+	    _handlers[delegator.id][event] = {};
+	    return;
+	  }
+	
+	  // if a selector is specified but no callback remove all events
+	  // for this selector
+	  // example: EventDelegator(element).off('click', '.sub-element')
+	  if (!callback) {
+	    delete _handlers[delegator.id][event][selector];
+	    return;
+	  }
+	
+	  // if we have specified an event type, selector, and callback then we
+	  // need to make sure there are callbacks tied to this selector to
+	  // begin with.  if there aren't then we can stop here
+	  if (!_handlers[delegator.id][event][selector]) {
+	    return;
+	  }
+	
+	  // if there are then loop through all the callbacks and if we find
+	  // one that matches remove it from the array
+	  for (var i = 0; i < _handlers[delegator.id][event][selector].length; i++) {
+	    if (_handlers[delegator.id][event][selector][i] === callback) {
+	      _handlers[delegator.id][event][selector].splice(i, 1);
+	      break;
+	    }
+	  }
+	}
+	
+	function _handleEvent(id, e, type) {
+	  if (!_handlers[id][type]) {
+	    return;
+	  }
+	
+	  var target = e.target || e.srcElement;
+	  var selector = void 0;
+	  var match = void 0;
+	  var matches = {};
+	  var i = 0;
+	  var j = 0;
+	
+	  // find all events that match
+	  _level = 0;
+	  for (selector in _handlers[id][type]) {
+	    if (_handlers[id][type].hasOwnProperty(selector)) {
+	      match = _matchesSelector(target, selector, _delegatorInstances[id].element);
+	
+	      if (match && EventDelegator.matchesEvent(type, _delegatorInstances[id].element, match, selector === '_root', e)) {
+	        _level++;
+	        _handlers[id][type][selector].match = match;
+	        matches[_level] = _handlers[id][type][selector];
+	      }
+	    }
+	  }
+	
+	  // stopPropagation() fails to set cancelBubble to true in Webkit
+	  // @see http://code.google.com/p/chromium/issues/detail?id=162270
+	  e.stopPropagation = function () {
+	    e.cancelBubble = true;
+	  };
+	
+	  for (i = 0; i <= _level; i++) {
+	    if (matches[i]) {
+	      for (j = 0; j < matches[i].length; j++) {
+	        if (matches[i][j].call(matches[i].match, e) === false) {
+	          EventDelegator.cancel(e);
+	          return;
+	        }
+	
+	        if (e.cancelBubble) {
+	          return;
+	        }
+	      }
+	    }
+	  }
+	}
+	
+	var id = 0;
+	function nextId() {
+	  return id++;
+	}
+	
+	/**
+	 * binds the specified events to the element
+	 *
+	 * @param {string|Array} events
+	 * @param {string} selector
+	 * @param {Function} callback
+	 * @param {boolean=} remove
+	 * @returns {Object}
+	 */
+	function _bind(events, selector, callback, remove) {
+	  // fail silently if you pass null or undefined as an alement
+	  // in the EventDelegator constructor
+	  if (!this.element) {
+	    return;
+	  }
+	
+	  if (!(events instanceof Array)) {
+	    events = [events];
+	  }
+	
+	  if (!callback && typeof selector === 'function') {
+	    callback = selector;
+	    selector = '_root';
+	  }
+	
+	  if (selector instanceof window.HTMLElement) {
+	    var _id2 = void 0;
+	    if (selector.hasAttribute('xin-event-id')) {
+	      _id2 = selector.getAttribute('xin-event-id');
+	    } else {
+	      _id2 = nextId();
+	      selector.setAttribute('xin-event-id', _id2);
+	    }
+	    selector = '[xin-event-id="' + _id2 + '"]';
+	  }
+	
+	  var id = this.id;
+	  var i = void 0;
+	
+	  function _getGlobalCallback(type) {
+	    return function (e) {
+	      _handleEvent(id, e, type);
+	    };
+	  }
+	
+	  for (i = 0; i < events.length; i++) {
+	    if (remove) {
+	      _removeHandler(this, events[i], selector, callback);
+	      continue;
+	    }
+	
+	    if (!_handlers[id] || !_handlers[id][events[i]]) {
+	      EventDelegator.addEvent(this, events[i], _getGlobalCallback(events[i]));
+	    }
+	
+	    _addHandler(this, events[i], selector, callback);
+	  }
+	
+	  return this;
+	}
+	
+	/**
+	 * EventDelegator object constructor
+	 *
+	 * @param {Node} element
+	 */
+	function EventDelegator(element, id) {
+	  // called as function
+	  if (!(this instanceof EventDelegator)) {
+	    // only keep one EventDelegator instance per node to make sure that
+	    // we don't create a ton of new objects if you want to delegate
+	    // multiple events from the same node
+	    //
+	    // for example: EventDelegator(document).on(...
+	    for (var key in _delegatorInstances) {
+	      if (_delegatorInstances[key].element === element) {
+	        return _delegatorInstances[key];
+	      }
+	    }
+	
+	    _id++;
+	    _delegatorInstances[_id] = new EventDelegator(element, _id);
+	
+	    return _delegatorInstances[_id];
+	  }
+	
+	  this.element = element;
+	  this.id = id;
+	}
+	
+	/**
+	 * adds an event
+	 *
+	 * @param {string|Array} events
+	 * @param {string} selector
+	 * @param {Function} callback
+	 * @returns {Object}
+	 */
+	EventDelegator.prototype.on = function (events, selector, callback) {
+	  return _bind.call(this, events, selector, callback);
+	};
+	
+	/**
+	 * removes an event
+	 *
+	 * @param {string|Array} events
+	 * @param {string} selector
+	 * @param {Function} callback
+	 * @returns {Object}
+	 */
+	EventDelegator.prototype.off = function (events, selector, callback) {
+	  return _bind.call(this, events, selector, callback, true);
+	};
+	
+	EventDelegator.matchesSelector = function () {};
+	EventDelegator.cancel = _cancel;
+	EventDelegator.addEvent = _addEvent;
+	EventDelegator.matchesEvent = function () {
+	  return true;
+	};
+	
+	if (typeof module !== 'undefined' && module.exports) {
+	  module.exports = EventDelegator;
+	}
+	
+	exports.default = EventDelegator;
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
 	
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 	
@@ -1173,7 +1551,7 @@
 	exports.deserialize = deserialize;
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports) {
 
 	'use strict';

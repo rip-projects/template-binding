@@ -6,11 +6,18 @@ import Filter from './filter';
 import Token from './token';
 import Event from './event';
 import { deserialize } from './serializer';
-import { slotName, slotAppend } from './slot';
 
 let templateId = 0;
 function nextId () {
   return templateId++;
+}
+
+const SLOT_SUPPORTED = (typeof window === 'undefined')
+  ? false
+  : 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof window.HTMLUnknownElement);
+
+function slotName (element) {
+  return SLOT_SUPPORTED ? element.name : element.getAttribute('name');
 }
 
 function fixTemplate (template) {
@@ -168,16 +175,24 @@ T.prototype = {
     this.__templateFragment = null;
 
     if (contentFragment && contentFragment instanceof window.DocumentFragment) {
-      try {
-        [].forEach.call(fragment.querySelectorAll('slot'), slot => {
-          let name = slotName(slot);
-          let node = name ? contentFragment.querySelectorAll(`[slot="${name}"]`) : contentFragment;
-          slotAppend(slot, node, fragment);
-        });
-      } catch (err) {
-        console.error(err.stack);
-        throw err;
-      }
+      // try {
+      [].forEach.call(fragment.querySelectorAll('slot'), slot => {
+        let name = slotName(slot);
+        let parent = slot.parentElement || fragment;
+        let marker = document.createComment(`slot ${name}`);
+
+        parent.insertBefore(marker, slot);
+        parent.removeChild(slot);
+
+        if (name) {
+          let node = contentFragment.querySelectorAll(`[slot="${name}"]`);
+          [].forEach.call(node, (node) => {
+            parent.insertBefore(node, marker);
+          });
+        } else {
+          parent.insertBefore(contentFragment, marker);
+        }
+      });
     }
 
     this.__templateMarker.parentElement.insertBefore(fragment, this.__templateMarker);

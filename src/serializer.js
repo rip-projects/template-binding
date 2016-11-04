@@ -6,6 +6,8 @@ function serialize (value) {
     case 'object':
       if (value instanceof Date) {
         return value;
+      } else if (value instanceof RegExp) {
+        return value.toString().slice(1, -1);
       } else if (value) {
         try {
           return JSON.stringify(value);
@@ -50,6 +52,10 @@ function deserialize (value, type) {
 
     case Date:
       value = new Date(value);
+      break;
+
+    case RegExp:
+      value = new RegExp(value);
       break;
 
     case Function:

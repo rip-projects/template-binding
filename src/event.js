@@ -213,6 +213,39 @@ function nextId () {
   return id++;
 }
 
+const aliases = new Map();
+const aliasesDefaultTranslator = name => ([ name ]);
+const aliasesTranslators = {
+  transitionend (name) {
+    let el = document.createElement('fakeelement');
+    let transitions = {
+      'OTransition': 'oTransitionEnd',
+      'MozTransition': 'transitionend',
+      'WebkitTransition': 'webkitTransitionEnd',
+      'transition': 'transitionend',
+    };
+
+    for (let t in transitions) {
+      if (el.style[t] !== undefined) {
+        return [transitions[t]];
+      }
+    }
+  },
+};
+
+function _aliases (name) {
+  let theAliases;
+  if (aliases.has(name)) {
+    theAliases = aliases.get(name);
+  } else {
+    let translator = aliasesTranslators[name] || aliasesDefaultTranslator;
+    theAliases = translator(name);
+    aliases.set(name, theAliases);
+  }
+
+  return theAliases;
+}
+
 /**
  * binds the specified events to the element
  *
@@ -259,16 +292,19 @@ function _bind (events, selector, callback, remove) {
   }
 
   for (i = 0; i < events.length; i++) {
-    if (remove) {
-      _removeHandler(this, events[i], selector, callback);
-      continue;
-    }
+    _aliases(events[i]).forEach(alias => {
+      // console.info('> ' + events[i] + ':' + alias);
+      if (remove) {
+        _removeHandler(this, alias, selector, callback);
+        return;
+      }
 
-    if (!_handlers[id] || !_handlers[id][events[i]]) {
-      EventDelegator.addEvent(this, events[i], _getGlobalCallback(events[i]));
-    }
+      if (!_handlers[id] || !_handlers[id][alias]) {
+        EventDelegator.addEvent(this, alias, _getGlobalCallback(alias));
+      }
 
-    _addHandler(this, events[i], selector, callback);
+      _addHandler(this, alias, selector, callback);
+    });
   }
 
   return this;
@@ -327,9 +363,43 @@ EventDelegator.prototype.off = function (events, selector, callback) {
   return _bind.call(this, events, selector, callback, true);
 };
 
+EventDelegator.prototype.fire = function (type, detail, options) {
+  options = options || {};
+  detail = detail || {};
+
+  let evt;
+  let bubbles = options.bubbles === undefined ? true : options.bubbles;
+  let cancelable = Boolean(options.cancelable);
+
+  switch (type) {
+    case 'click':
+      evt = new window.Event(type, {
+        bubbles: bubbles,
+        cancelable: cancelable,
+      });
+
+      // TODO check if without this works on every browsers
+      // evt = document.createEvent('HTMLEvents');
+      // evt.initEvent(type, true, false);
+      break;
+    default:
+      evt = new window.CustomEvent(type, {
+        bubbles: Boolean(bubbles),
+        cancelable: cancelable,
+        detail: detail,
+      });
+      break;
+  }
+
+  this.element.dispatchEvent(evt);
+
+  return evt;
+};
+
 EventDelegator.matchesSelector = function () {};
 EventDelegator.cancel = _cancel;
 EventDelegator.addEvent = _addEvent;
+EventDelegator.aliases = _aliases;
 EventDelegator.matchesEvent = function () {
   return true;
 };

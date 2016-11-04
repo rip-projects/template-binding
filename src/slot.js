@@ -18,7 +18,7 @@ function slotAppend (slot, node, root) {
   if (node instanceof window.Node) {
     slot.appendChild(node);
   } else {
-    node.forEach(node => slot.appendChild(node));
+    [].forEach.call(node, n => slot.appendChild(n));
   }
 }
 

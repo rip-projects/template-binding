@@ -17,12 +17,15 @@ class Token {
 
   constructor (name) {
     this.name = name;
-    try {
-      this._value = JSON.parse(this.name);
-      this.type = 's';
-    } catch (err) {
-      this._value = null;
-      this.type = 'v';
+    this._value = null;
+    this.type = 'v';
+
+    if (!this.name.match(/^[a-zA-Z_]/)) {
+      try {
+        this._value = JSON.parse(this.name);
+        this.type = 's';
+      } catch (err) {
+      }
     }
   }
 

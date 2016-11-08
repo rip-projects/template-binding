@@ -80,8 +80,6 @@
 	
 	var _serializer = __webpack_require__(8);
 	
-	var _slot = __webpack_require__(9);
-	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
@@ -89,6 +87,12 @@
 	var templateId = 0;
 	function nextId() {
 	  return templateId++;
+	}
+	
+	var SLOT_SUPPORTED = typeof window === 'undefined' ? false : 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof window.HTMLUnknownElement);
+	
+	function slotName(element) {
+	  return SLOT_SUPPORTED ? element.name : element.getAttribute('name');
 	}
 	
 	function fixTemplate(template) {
@@ -181,18 +185,18 @@
 	      return;
 	    }
 	
-	    try {
-	      var binding = this.__templateGetBinding(path);
-	      if (binding) {
-	        if (typeof value === 'undefined') {
-	          value = this.get(path);
-	        }
-	
-	        binding.walkEffect(value);
+	    // try {
+	    var binding = this.__templateGetBinding(path);
+	    if (binding) {
+	      if (typeof value === 'undefined') {
+	        value = this.get(path);
 	      }
-	    } catch (err) {
-	      console.warn('#notify caught error: ' + err.message + '\n Stack trace: ' + err.stack);
+	
+	      binding.walkEffect(value);
 	    }
+	    // } catch (err) {
+	    //   console.warn(`#notify caught error: ${err.message}\n Stack trace: ${err.stack}`);
+	    // }
 	  },
 	  __templateInitialize: function __templateInitialize(template, host, marker) {
 	    this.__templateId = nextId();
@@ -246,28 +250,33 @@
 	    this.__templateFragment = null;
 	
 	    if (contentFragment && contentFragment instanceof window.DocumentFragment) {
-	      try {
-	        [].forEach.call(fragment.querySelectorAll('slot'), function (slot) {
-	          var name = (0, _slot.slotName)(slot);
-	          var node = name ? contentFragment.querySelectorAll('[slot="' + name + '"]') : contentFragment;
-	          (0, _slot.slotAppend)(slot, node, fragment);
-	        });
-	      } catch (err) {
-	        console.error(err.stack);
-	        throw err;
-	      }
+	      // try {
+	      [].forEach.call(fragment.querySelectorAll('slot'), function (slot) {
+	        var name = slotName(slot);
+	        var parent = slot.parentElement || fragment;
+	        var marker = document.createComment('slot ' + name);
+	
+	        parent.insertBefore(marker, slot);
+	        parent.removeChild(slot);
+	
+	        if (name) {
+	          var node = contentFragment.querySelectorAll('[slot="' + name + '"]');
+	          [].forEach.call(node, function (node) {
+	            parent.insertBefore(node, marker);
+	          });
+	        } else {
+	          parent.insertBefore(contentFragment, marker);
+	        }
+	      });
 	    }
 	
 	    this.__templateMarker.parentElement.insertBefore(fragment, this.__templateMarker);
 	  },
-	
-	
-	  // __templateUninitialize () {
-	  //   this.__templateChildNodes.forEach(node => {
-	  //     node.parentElement.removeChild(node);
-	  //   });
-	  // },
-	
+	  __templateUninitialize: function __templateUninitialize() {
+	    this.__templateChildNodes.forEach(function (node) {
+	      node.parentElement.removeChild(node);
+	    });
+	  },
 	  __templateGetPathAsArray: function __templateGetPathAsArray(path) {
 	    // if (!path) {
 	    //   throw new Error(`Unknown path ${path} to set to ${this.is}`);
@@ -680,12 +689,14 @@
 	    _classCallCheck(this, Token);
 	
 	    this.name = name;
-	    try {
-	      this._value = JSON.parse(this.name);
-	      this.type = 's';
-	    } catch (err) {
-	      this._value = null;
-	      this.type = 'v';
+	    this._value = null;
+	    this.type = 'v';
+	
+	    if (!this.name.match(/^[a-zA-Z_]/)) {
+	      try {
+	        this._value = JSON.parse(this.name);
+	        this.type = 's';
+	      } catch (err) {}
 	    }
 	  }
 	
@@ -1342,6 +1353,41 @@
 	  return id++;
 	}
 	
+	var aliases = new Map();
+	var aliasesDefaultTranslator = function aliasesDefaultTranslator(name) {
+	  return [name];
+	};
+	var aliasesTranslators = {
+	  transitionend: function transitionend(name) {
+	    var el = document.createElement('fakeelement');
+	    var transitions = {
+	      'OTransition': 'oTransitionEnd',
+	      'MozTransition': 'transitionend',
+	      'WebkitTransition': 'webkitTransitionEnd',
+	      'transition': 'transitionend'
+	    };
+	
+	    for (var t in transitions) {
+	      if (el.style[t] !== undefined) {
+	        return [transitions[t]];
+	      }
+	    }
+	  }
+	};
+	
+	function _aliases(name) {
+	  var theAliases = void 0;
+	  if (aliases.has(name)) {
+	    theAliases = aliases.get(name);
+	  } else {
+	    var translator = aliasesTranslators[name] || aliasesDefaultTranslator;
+	    theAliases = translator(name);
+	    aliases.set(name, theAliases);
+	  }
+	
+	  return theAliases;
+	}
+	
 	/**
 	 * binds the specified events to the element
 	 *
@@ -1352,6 +1398,8 @@
 	 * @returns {Object}
 	 */
 	function _bind(events, selector, callback, remove) {
+	  var _this = this;
+	
 	  // fail silently if you pass null or undefined as an alement
 	  // in the EventDelegator constructor
 	  if (!this.element) {
@@ -1388,16 +1436,19 @@
 	  }
 	
 	  for (i = 0; i < events.length; i++) {
-	    if (remove) {
-	      _removeHandler(this, events[i], selector, callback);
-	      continue;
-	    }
+	    _aliases(events[i]).forEach(function (alias) {
+	      // console.info('> ' + events[i] + ':' + alias);
+	      if (remove) {
+	        _removeHandler(_this, alias, selector, callback);
+	        return;
+	      }
 	
-	    if (!_handlers[id] || !_handlers[id][events[i]]) {
-	      EventDelegator.addEvent(this, events[i], _getGlobalCallback(events[i]));
-	    }
+	      if (!_handlers[id] || !_handlers[id][alias]) {
+	        EventDelegator.addEvent(_this, alias, _getGlobalCallback(alias));
+	      }
 	
-	    _addHandler(this, events[i], selector, callback);
+	      _addHandler(_this, alias, selector, callback);
+	    });
 	  }
 	
 	  return this;
@@ -1456,9 +1507,43 @@
 	  return _bind.call(this, events, selector, callback, true);
 	};
 	
+	EventDelegator.prototype.fire = function (type, detail, options) {
+	  options = options || {};
+	  detail = detail || {};
+	
+	  var evt = void 0;
+	  var bubbles = options.bubbles === undefined ? true : options.bubbles;
+	  var cancelable = Boolean(options.cancelable);
+	
+	  switch (type) {
+	    case 'click':
+	      evt = new window.Event(type, {
+	        bubbles: bubbles,
+	        cancelable: cancelable
+	      });
+	
+	      // TODO check if without this works on every browsers
+	      // evt = document.createEvent('HTMLEvents');
+	      // evt.initEvent(type, true, false);
+	      break;
+	    default:
+	      evt = new window.CustomEvent(type, {
+	        bubbles: Boolean(bubbles),
+	        cancelable: cancelable,
+	        detail: detail
+	      });
+	      break;
+	  }
+	
+	  this.element.dispatchEvent(evt);
+	
+	  return evt;
+	};
+	
 	EventDelegator.matchesSelector = function () {};
 	EventDelegator.cancel = _cancel;
 	EventDelegator.addEvent = _addEvent;
+	EventDelegator.aliases = _aliases;
 	EventDelegator.matchesEvent = function () {
 	  return true;
 	};
@@ -1489,6 +1574,8 @@
 	    case 'object':
 	      if (value instanceof Date) {
 	        return value;
+	      } else if (value instanceof RegExp) {
+	        return value.toString().slice(1, -1);
 	      } else if (value) {
 	        try {
 	          return JSON.stringify(value);
@@ -1535,6 +1622,10 @@
 	      value = new Date(value);
 	      break;
 	
+	    case RegExp:
+	      value = new RegExp(value);
+	      break;
+	
 	    case Function:
 	      value = new Function(value); // eslint-disable-line
 	      break;
@@ -1549,49 +1640,6 @@
 	
 	exports.serialize = serialize;
 	exports.deserialize = deserialize;
-
-/***/ },
-/* 9 */
-/***/ function(module, exports) {
-
-	'use strict';
-	
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	
-	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-	
-	var SLOT_SUPPORTED = typeof window === 'undefined' ? false : 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof window.HTMLUnknownElement);
-	
-	function slotName(element) {
-	  return SLOT_SUPPORTED ? element.name : element.getAttribute('name');
-	}
-	
-	function slotAppend(slot, node, root) {
-	  if (!slot.__slotHasChildren) {
-	    slot.__slotHasChildren = true;
-	    slot.__slotFallbackContent = [].concat(_toConsumableArray(slot.childNodes));
-	    while (slot.firstChild) {
-	      slot.removeChild(slot.firstChild);
-	    }
-	  }
-	
-	  if (node instanceof window.Node) {
-	    slot.appendChild(node);
-	  } else {
-	    node.forEach(function (node) {
-	      return slot.appendChild(node);
-	    });
-	  }
-	}
-	
-	// function elementSlot (element) {
-	//   return SLOT_SUPPORTED ? element.slot : element.getAttribute('slot');
-	// }
-	
-	exports.slotName = slotName;
-	exports.slotAppend = slotAppend;
 
 /***/ }
 /******/ ]);

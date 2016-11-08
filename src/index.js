@@ -112,18 +112,18 @@ T.prototype = {
       return;
     }
 
-    try {
-      let binding = this.__templateGetBinding(path);
-      if (binding) {
-        if (typeof value === 'undefined') {
-          value = this.get(path);
-        }
-
-        binding.walkEffect(value);
+    // try {
+    let binding = this.__templateGetBinding(path);
+    if (binding) {
+      if (typeof value === 'undefined') {
+        value = this.get(path);
       }
-    } catch (err) {
-      console.warn(`#notify caught error: ${err.message}\n Stack trace: ${err.stack}`);
+
+      binding.walkEffect(value);
     }
+    // } catch (err) {
+    //   console.warn(`#notify caught error: ${err.message}\n Stack trace: ${err.stack}`);
+    // }
   },
 
   __templateInitialize (template, host, marker) {
@@ -198,11 +198,11 @@ T.prototype = {
     this.__templateMarker.parentElement.insertBefore(fragment, this.__templateMarker);
   },
 
-  // __templateUninitialize () {
-  //   this.__templateChildNodes.forEach(node => {
-  //     node.parentElement.removeChild(node);
-  //   });
-  // },
+  __templateUninitialize () {
+    this.__templateChildNodes.forEach(node => {
+      node.parentElement.removeChild(node);
+    });
+  },
 
   __templateGetPathAsArray (path) {
     // if (!path) {

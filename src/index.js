@@ -102,6 +102,81 @@ T.prototype = {
     this.notify(path, value);
   },
 
+  push (path, ...values) {
+    path = this.__templateGetPathAsArray(path);
+
+    let object = this;
+
+    path.slice(0, -1).forEach(segment => {
+      if (!object) {
+        return;
+      }
+      if (object[segment] === undefined || object[segment] === null) {
+        object[segment] = {};
+      }
+
+      object = object[segment];
+    });
+
+    let property = path.slice(-1).pop();
+
+    let result = object[property].push(...values);
+
+    this.notify(path, object[property]);
+
+    return result;
+  },
+
+  pop (path) {
+    path = this.__templateGetPathAsArray(path);
+
+    let object = this;
+
+    path.slice(0, -1).forEach(segment => {
+      if (!object) {
+        return;
+      }
+      if (object[segment] === undefined || object[segment] === null) {
+        object[segment] = {};
+      }
+
+      object = object[segment];
+    });
+
+    let property = path.slice(-1).pop();
+
+    let result = object[property].pop();
+
+    this.notify(path, object[property]);
+
+    return result;
+  },
+
+  splice (path, ...args) {
+    path = this.__templateGetPathAsArray(path);
+
+    let object = this;
+
+    path.slice(0, -1).forEach(segment => {
+      if (!object) {
+        return;
+      }
+      if (object[segment] === undefined || object[segment] === null) {
+        object[segment] = {};
+      }
+
+      object = object[segment];
+    });
+
+    let property = path.slice(-1).pop();
+
+    let result = object[property].splice(...args);
+
+    this.notify(path, object[property]);
+
+    return result;
+  },
+
   notify (path, value) {
     path = this.__templateGetPathAsString(path);
 
@@ -164,12 +239,14 @@ T.prototype = {
   __templateRender (contentFragment) {
     this.__templateReady = true;
 
+    this.__templateNotifyOnReady.forEach(key => {
+      this.notify(key, this.get(key));
+    });
+    this.__templateNotifyOnReady = [];
+
     if (!this.__template) {
       return;
     }
-
-    this.__templateNotifyOnReady.forEach(key => this.notify(key, this.get(key)));
-    this.__templateNotifyOnReady = [];
 
     let fragment = this.__templateFragment;
     this.__templateFragment = null;

@@ -5,6 +5,7 @@ import Annotation from './annotation';
 import Filter from './filter';
 import Token from './token';
 import Event from './event';
+import Css from './css';
 import { deserialize } from './serializer';
 
 let templateId = 0;
@@ -47,6 +48,10 @@ T.prototype = {
 
   off () {
     Event(this.__templateHost).off(...arguments);
+  },
+
+  once () {
+    Event(this.__templateHost).once(...arguments);
   },
 
   all (obj) {
@@ -458,6 +463,7 @@ T.Accessor = Accessor;
 T.Token = Token;
 T.Expr = Expr;
 T.Event = Event;
+T.Css = Css;
 T.deserialize = deserialize;
 
 window.T = T;

@@ -1,21 +1,14 @@
 const webpack = require('webpack');
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 const ENV = process.env.NODE_ENV || 'development';
-const ANALYZE = process.env.ANALYZE;
 
 function getPlugins () {
   let plugins = [];
 
   if (ENV === 'production') {
     plugins.push(
-      new webpack.optimize.UglifyJsPlugin({ compress: { warnings: false } }),
-      new webpack.optimize.DedupePlugin()
+      new webpack.optimize.UglifyJsPlugin({ compress: { warnings: false } })
     );
-  } else {
-    if (ANALYZE) {
-      plugins.push(new BundleAnalyzerPlugin());
-    }
   }
 
   return plugins;
@@ -34,8 +27,9 @@ module.exports = {
       {
         test: /\.js$/,
         exclude: /(node_modules|bower_components)/,
-        loader: 'babel',
+        loader: require.resolve('babel-loader'),
         query: {
+          presets: ['es2015'],
           cacheDirectory: true,
         },
       },

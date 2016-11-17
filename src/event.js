@@ -273,13 +273,13 @@ function _bind (events, selector, callback, remove) {
 
   if (selector instanceof window.HTMLElement) {
     let id;
-    if (selector.hasAttribute('xin-event-id')) {
-      id = selector.getAttribute('xin-event-id');
+    if (selector.hasAttribute('bind-event-id')) {
+      id = selector.getAttribute('bind-event-id');
     } else {
       id = nextId();
-      selector.setAttribute('xin-event-id', id);
+      selector.setAttribute('bind-event-id', id);
     }
-    selector = `[xin-event-id="${id}"]`;
+    selector = `[bind-event-id="${id}"]`;
   }
 
   let id = this.id;
@@ -363,6 +363,20 @@ EventDelegator.prototype.off = function (events, selector, callback) {
   return _bind.call(this, events, selector, callback, true);
 };
 
+EventDelegator.prototype.once = function (events, selector, callback) {
+  if (!callback && typeof (selector) === 'function') {
+    callback = selector;
+    selector = '_root';
+  }
+
+  const proxyCallback = (...args) => {
+    this.off(events, selector, proxyCallback);
+    return callback(...args);
+  };
+
+  return this.on(events, selector, proxyCallback);
+};
+
 EventDelegator.prototype.fire = function (type, detail, options) {
   options = options || {};
   detail = detail || {};
@@ -403,9 +417,5 @@ EventDelegator.aliases = _aliases;
 EventDelegator.matchesEvent = function () {
   return true;
 };
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = EventDelegator;
-}
 
 export default EventDelegator;

@@ -7,7 +7,6 @@ class Annotation {
 
   effect (value) {
     if (this.accessor) {
-      // FIXME implement composite annotation
       this.accessor.set(this.expr.invoke(this.model));
     } else {
       this.expr.invoke(this.model);

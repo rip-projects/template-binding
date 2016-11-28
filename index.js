@@ -1,31 +1,21 @@
+import eventHelper from 'event-helper';
+
 import Expr from './expr';
 import Binding from './binding';
 import Accessor from './accessor';
 import Annotation from './annotation';
-import Filter from './filter';
-import Token from './token';
-import Event from './event';
-import Css from './css';
-import { deserialize } from './serializer';
+
+import { fix } from './helpers/template';
+import { slotName } from './helpers/slot';
+
+// new version will not export filter token and css modules
+// import Filter from './filter';
+// import Token from './token';
+// import Css from './css';
 
 let templateId = 0;
 function nextId () {
   return templateId++;
-}
-
-const SLOT_SUPPORTED = (typeof window === 'undefined')
-  ? false
-  : 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof window.HTMLUnknownElement);
-
-function slotName (element) {
-  return SLOT_SUPPORTED ? element.name : element.getAttribute('name');
-}
-
-function fixTemplate (template) {
-  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
-    window.HTMLTemplateElement.decorate(template);
-  }
-  return template;
 }
 
 function T (template, host, marker) {
@@ -43,15 +33,15 @@ T.prototype = {
   },
 
   on () {
-    Event(this.__templateHost).on(...arguments);
+    eventHelper(this.__templateHost).on(...arguments);
   },
 
   off () {
-    Event(this.__templateHost).off(...arguments);
+    eventHelper(this.__templateHost).off(...arguments);
   },
 
   once () {
-    Event(this.__templateHost).once(...arguments);
+    eventHelper(this.__templateHost).once(...arguments);
   },
 
   all (obj) {
@@ -220,7 +210,7 @@ T.prototype = {
     }
 
     // do below only if template is exists
-    this.__template = fixTemplate(template);
+    this.__template = fix(template);
     this.__templateChildNodes = [];
 
     this.__templateFragment = document.importNode(this.__template.content, true);
@@ -355,6 +345,10 @@ T.prototype = {
 
       let attrName = attr.name;
 
+      if (attrName === 'id' || attrName === 'class' || attrName === 'style') {
+        continue;
+      }
+
       if (attrName.indexOf('(') === 0) {
         this.__parseEventAnnotations(element, attrName);
       } else {
@@ -458,13 +452,11 @@ T.prototype = {
   },
 };
 
-T.Filter = Filter;
-T.Accessor = Accessor;
-T.Token = Token;
-T.Expr = Expr;
-T.Event = Event;
-T.Css = Css;
-T.deserialize = deserialize;
+// new version will not export filter token and css modules
+// T.Filter = Filter;
+// T.Accessor = Accessor;
+// T.Token = Token;
+// T.Css = Css;
 
 window.T = T;
 

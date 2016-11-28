@@ -75,163 +75,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Filter = function () {
-  function Filter(name, callback, otherArgs) {
-    _classCallCheck(this, Filter);
-
-    this.name = name;
-    this.callback = callback;
-    this.otherArgs = otherArgs;
-  }
-
-  _createClass(Filter, [{
-    key: 'invoke',
-    value: function invoke(val) {
-      var args = [val];
-      [].push.apply(args, this.otherArgs);
-      return this.callback.apply(null, args);
-    }
-  }], [{
-    key: 'put',
-    value: function put(name, callback) {
-      registry[name] = callback;
-    }
-  }, {
-    key: 'get',
-    value: function get(name) {
-      var segments = name.split(':');
-      var args = segments.splice(1);
-      var key = segments.pop();
-      return new Filter(key, registry[key], args);
-    }
-  }]);
-
-  return Filter;
-}();
-
-var registry = {
-  required: function required(val) {
-    if (val === undefined || val === null || val === '') {
-      throw new Error('Value is required');
-    }
-    return val;
-  },
-  upper: function upper(val) {
-    return String.prototype.toUpperCase.call(val || '');
-  },
-  lower: function lower(val) {
-    return String.prototype.toLowerCase.call(val || '');
-  },
-  not: function not(val) {
-    return !val;
-  },
-  slice: function slice(val, begin, end) {
-    return Array.prototype.slice.call(val || [], begin, end);
-  }
-};
-
-exports.default = Filter;
-
-/***/ },
-/* 1 */
-/***/ function(module, exports) {
-
-"use strict";
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var CACHE = new Map();
-
-var Token = function () {
-  _createClass(Token, null, [{
-    key: 'get',
-    value: function get(name) {
-      if (CACHE.has(name)) {
-        return CACHE.get(name);
-      }
-
-      var token = new Token(name);
-      CACHE.set(name, token);
-      return token;
-    }
-  }, {
-    key: 'CACHE',
-    get: function get() {
-      return CACHE;
-    }
-  }]);
-
-  function Token(name) {
-    _classCallCheck(this, Token);
-
-    this.name = name;
-    this._value = null;
-    this.type = 'v';
-
-    if (!this.name.match(/^[a-zA-Z_]/)) {
-      try {
-        this._value = JSON.parse(this.name);
-        this.type = 's';
-      } catch (err) {}
-    }
-  }
-
-  _createClass(Token, [{
-    key: 'value',
-    value: function value(context, others) {
-      context = context || window;
-
-      if (this.type === 's') {
-        return this._value;
-      }
-
-      var val = valueOf(context, this.name);
-      if (typeof val !== 'undefined') {
-        return val;
-      }
-
-      val = valueOf(others, this.name);
-      if (typeof val !== 'undefined') {
-        return val;
-      }
-
-      return;
-    }
-  }]);
-
-  return Token;
-}();
-
-function valueOf(context, key) {
-  if (context) {
-    return typeof context.get === 'function' ? context.get(key) : context[key];
-  }
-}
-
-exports.default = Token;
-
-/***/ },
-/* 2 */
-/***/ function(module, exports) {
-
-"use strict";
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
 var _get = function get(object, property, receiver) { if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { return get(parent, property, receiver); } } else if ("value" in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } };
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -242,6 +85,8 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+// FIXME create new class PropertyAccessor and use inflector to convert name
+// from dashify to camelize
 var BaseAccessor = function () {
   _createClass(BaseAccessor, null, [{
     key: 'get',
@@ -276,6 +121,7 @@ var BaseAccessor = function () {
             throw new Error('Unimplemented resolving accessor for nodeType: ' + node.nodeType);
         }
       } else {
+        console.warn('xxxx', node, name);
         return new BaseAccessor(node, name);
       }
     }
@@ -458,7 +304,7 @@ var AttributeAccessor = function (_BaseAccessor6) {
 exports.default = BaseAccessor;
 
 /***/ },
-/* 3 */
+/* 1 */
 /***/ function(module, exports) {
 
 "use strict";
@@ -485,7 +331,6 @@ var Annotation = function () {
     key: "effect",
     value: function effect(value) {
       if (this.accessor) {
-        // FIXME implement composite annotation
         this.accessor.set(this.expr.invoke(this.model));
       } else {
         this.expr.invoke(this.model);
@@ -499,7 +344,7 @@ var Annotation = function () {
 exports.default = Annotation;
 
 /***/ },
-/* 4 */
+/* 2 */
 /***/ function(module, exports) {
 
 "use strict";
@@ -548,512 +393,7 @@ var Binding = function () {
 exports.default = Binding;
 
 /***/ },
-/* 5 */
-/***/ function(module, exports) {
-
-"use strict";
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-function camelize(str) {
-  return str.replace(/-\D/g, function (match) {
-    return match.charAt(1).toUpperCase();
-  });
-}
-
-// function hyphenate (str) {
-//   return str.replace(/[A-Z]/g, match => '-' + match.toLowerCase());
-// }
-
-var setters = {};
-
-function setter(key) {
-  if ('key' in setters) {
-    return setters[key];
-  }
-
-  var fn = setters[key] = function (element, value) {
-    element.style[camelize(key)] = value;
-  };
-  return fn;
-}
-
-function set(element, key, value) {
-  setter(key)(element, value);
-}
-
-function Css(element) {
-  if (this instanceof Css === false) {
-    return new Css(element);
-  }
-
-  this.element = element;
-}
-
-Css.prototype.set = function (key, value) {
-  if (typeof key === 'string') {
-    set(this.element, key, value);
-  } else {
-    for (var k in key) {
-      set(this.element, k, key[k]);
-    }
-  }
-
-  return this;
-};
-
-exports.default = Css;
-
-// -webkit-backface-visibility: hidden;
-// backface-visibility: hidden;
-// will-change: transform, -webkit-transform;
-// -webkit-transition: -webkit-transform 3s;
-// transition: transform 3s;
-// this.element.style.webkitTransform = 'translateX(100%)';
-// this.element.style.transform = 'translateX(100%)';
-
-/***/ },
-/* 6 */
-/***/ function(module, exports) {
-
-"use strict";
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-var _matcher = void 0;
-var _level = 0;
-var _id = 0;
-var _handlers = {};
-var _delegatorInstances = {};
-
-function _addEvent(delegator, type, callback) {
-  // blur and focus do not bubble up but if you use event capturing
-  // then you will get them
-  var useCapture = type === 'blur' || type === 'focus';
-  delegator.element.addEventListener(type, callback, useCapture);
-}
-
-function _cancel(e) {
-  e.preventDefault();
-  e.stopPropagation();
-}
-
-/**
- * returns function to use for determining if an element
- * matches a query selector
- *
- * @returns {Function}
- */
-function _getMatcher(element) {
-  if (_matcher) {
-    return _matcher;
-  }
-
-  if (element.matches) {
-    _matcher = element.matches;
-    return _matcher;
-  }
-
-  if (element.webkitMatchesSelector) {
-    _matcher = element.webkitMatchesSelector;
-    return _matcher;
-  }
-
-  if (element.mozMatchesSelector) {
-    _matcher = element.mozMatchesSelector;
-    return _matcher;
-  }
-
-  if (element.msMatchesSelector) {
-    _matcher = element.msMatchesSelector;
-    return _matcher;
-  }
-
-  if (element.oMatchesSelector) {
-    _matcher = element.oMatchesSelector;
-    return _matcher;
-  }
-
-  // if it doesn't match a native browser method
-  // fall back to the delegator function
-  _matcher = EventDelegator.matchesSelector;
-  return _matcher;
-}
-
-/**
- * determines if the specified element matches a given selector
- *
- * @param {Node} element - the element to compare against the selector
- * @param {string} selector
- * @param {Node} boundElement - the element the listener was attached to
- * @returns {void|Node}
- */
-function _matchesSelector(element, selector, boundElement) {
-  // no selector means this event was bound directly to this element
-  if (selector === '_root') {
-    return boundElement;
-  }
-
-  // if we have moved up to the element you bound the event to
-  // then we have come too far
-  if (element === boundElement) {
-    return;
-  }
-
-  // if this is a match then we are done!
-  if (_getMatcher(element).call(element, selector)) {
-    return element;
-  }
-
-  // if this element did not match but has a parent we should try
-  // going up the tree to see if any of the parent elements match
-  // for example if you are looking for a click on an <a> tag but there
-  // is a <span> inside of the a tag that it is the target,
-  // it should still work
-  if (element.parentNode) {
-    _level++;
-    return _matchesSelector(element.parentNode, selector, boundElement);
-  }
-}
-
-function _addHandler(delegator, event, selector, callback) {
-  if (!_handlers[delegator.id]) {
-    _handlers[delegator.id] = {};
-  }
-
-  if (!_handlers[delegator.id][event]) {
-    _handlers[delegator.id][event] = {};
-  }
-
-  if (!_handlers[delegator.id][event][selector]) {
-    _handlers[delegator.id][event][selector] = [];
-  }
-
-  _handlers[delegator.id][event][selector].push(callback);
-}
-
-function _removeHandler(delegator, event, selector, callback) {
-  // if there are no events tied to this element at all
-  // then don't do anything
-  if (!_handlers[delegator.id]) {
-    return;
-  }
-
-  // if there is no event type specified then remove all events
-  // example: EventDelegator(element).off()
-  if (!event) {
-    for (var type in _handlers[delegator.id]) {
-      if (_handlers[delegator.id].hasOwnProperty(type)) {
-        _handlers[delegator.id][type] = {};
-      }
-    }
-    return;
-  }
-
-  // if no callback or selector is specified remove all events of this type
-  // example: EventDelegator(element).off('click')
-  if (!callback && !selector) {
-    _handlers[delegator.id][event] = {};
-    return;
-  }
-
-  // if a selector is specified but no callback remove all events
-  // for this selector
-  // example: EventDelegator(element).off('click', '.sub-element')
-  if (!callback) {
-    delete _handlers[delegator.id][event][selector];
-    return;
-  }
-
-  // if we have specified an event type, selector, and callback then we
-  // need to make sure there are callbacks tied to this selector to
-  // begin with.  if there aren't then we can stop here
-  if (!_handlers[delegator.id][event][selector]) {
-    return;
-  }
-
-  // if there are then loop through all the callbacks and if we find
-  // one that matches remove it from the array
-  for (var i = 0; i < _handlers[delegator.id][event][selector].length; i++) {
-    if (_handlers[delegator.id][event][selector][i] === callback) {
-      _handlers[delegator.id][event][selector].splice(i, 1);
-      break;
-    }
-  }
-}
-
-function _handleEvent(id, e, type) {
-  if (!_handlers[id][type]) {
-    return;
-  }
-
-  var target = e.target || e.srcElement;
-  var selector = void 0;
-  var match = void 0;
-  var matches = {};
-  var i = 0;
-  var j = 0;
-
-  // find all events that match
-  _level = 0;
-  for (selector in _handlers[id][type]) {
-    if (_handlers[id][type].hasOwnProperty(selector)) {
-      match = _matchesSelector(target, selector, _delegatorInstances[id].element);
-
-      if (match && EventDelegator.matchesEvent(type, _delegatorInstances[id].element, match, selector === '_root', e)) {
-        _level++;
-        _handlers[id][type][selector].match = match;
-        matches[_level] = _handlers[id][type][selector];
-      }
-    }
-  }
-
-  // stopPropagation() fails to set cancelBubble to true in Webkit
-  // @see http://code.google.com/p/chromium/issues/detail?id=162270
-  e.stopPropagation = function () {
-    e.cancelBubble = true;
-  };
-
-  for (i = 0; i <= _level; i++) {
-    if (matches[i]) {
-      for (j = 0; j < matches[i].length; j++) {
-        if (matches[i][j].call(matches[i].match, e) === false) {
-          EventDelegator.cancel(e);
-          return;
-        }
-
-        if (e.cancelBubble) {
-          return;
-        }
-      }
-    }
-  }
-}
-
-var id = 0;
-function nextId() {
-  return id++;
-}
-
-var aliases = new Map();
-var aliasesDefaultTranslator = function aliasesDefaultTranslator(name) {
-  return [name];
-};
-var aliasesTranslators = {
-  transitionend: function transitionend(name) {
-    var el = document.createElement('fakeelement');
-    var transitions = {
-      'OTransition': 'oTransitionEnd',
-      'MozTransition': 'transitionend',
-      'WebkitTransition': 'webkitTransitionEnd',
-      'transition': 'transitionend'
-    };
-
-    for (var t in transitions) {
-      if (el.style[t] !== undefined) {
-        return [transitions[t]];
-      }
-    }
-  }
-};
-
-function _aliases(name) {
-  var theAliases = void 0;
-  if (aliases.has(name)) {
-    theAliases = aliases.get(name);
-  } else {
-    var translator = aliasesTranslators[name] || aliasesDefaultTranslator;
-    theAliases = translator(name);
-    aliases.set(name, theAliases);
-  }
-
-  return theAliases;
-}
-
-/**
- * binds the specified events to the element
- *
- * @param {string|Array} events
- * @param {string} selector
- * @param {Function} callback
- * @param {boolean=} remove
- * @returns {Object}
- */
-function _bind(events, selector, callback, remove) {
-  var _this = this;
-
-  // fail silently if you pass null or undefined as an alement
-  // in the EventDelegator constructor
-  if (!this.element) {
-    return;
-  }
-
-  if (!(events instanceof Array)) {
-    events = [events];
-  }
-
-  if (!callback && typeof selector === 'function') {
-    callback = selector;
-    selector = '_root';
-  }
-
-  if (selector instanceof window.HTMLElement) {
-    var _id2 = void 0;
-    if (selector.hasAttribute('bind-event-id')) {
-      _id2 = selector.getAttribute('bind-event-id');
-    } else {
-      _id2 = nextId();
-      selector.setAttribute('bind-event-id', _id2);
-    }
-    selector = '[bind-event-id="' + _id2 + '"]';
-  }
-
-  var id = this.id;
-  var i = void 0;
-
-  function _getGlobalCallback(type) {
-    return function (e) {
-      _handleEvent(id, e, type);
-    };
-  }
-
-  for (i = 0; i < events.length; i++) {
-    _aliases(events[i]).forEach(function (alias) {
-      // console.info('> ' + events[i] + ':' + alias);
-      if (remove) {
-        _removeHandler(_this, alias, selector, callback);
-        return;
-      }
-
-      if (!_handlers[id] || !_handlers[id][alias]) {
-        EventDelegator.addEvent(_this, alias, _getGlobalCallback(alias));
-      }
-
-      _addHandler(_this, alias, selector, callback);
-    });
-  }
-
-  return this;
-}
-
-/**
- * EventDelegator object constructor
- *
- * @param {Node} element
- */
-function EventDelegator(element, id) {
-  // called as function
-  if (!(this instanceof EventDelegator)) {
-    // only keep one EventDelegator instance per node to make sure that
-    // we don't create a ton of new objects if you want to delegate
-    // multiple events from the same node
-    //
-    // for example: EventDelegator(document).on(...
-    for (var key in _delegatorInstances) {
-      if (_delegatorInstances[key].element === element) {
-        return _delegatorInstances[key];
-      }
-    }
-
-    _id++;
-    _delegatorInstances[_id] = new EventDelegator(element, _id);
-
-    return _delegatorInstances[_id];
-  }
-
-  this.element = element;
-  this.id = id;
-}
-
-/**
- * adds an event
- *
- * @param {string|Array} events
- * @param {string} selector
- * @param {Function} callback
- * @returns {Object}
- */
-EventDelegator.prototype.on = function (events, selector, callback) {
-  return _bind.call(this, events, selector, callback);
-};
-
-/**
- * removes an event
- *
- * @param {string|Array} events
- * @param {string} selector
- * @param {Function} callback
- * @returns {Object}
- */
-EventDelegator.prototype.off = function (events, selector, callback) {
-  return _bind.call(this, events, selector, callback, true);
-};
-
-EventDelegator.prototype.once = function (events, selector, callback) {
-  var _this2 = this;
-
-  if (!callback && typeof selector === 'function') {
-    callback = selector;
-    selector = '_root';
-  }
-
-  var proxyCallback = function proxyCallback() {
-    _this2.off(events, selector, proxyCallback);
-    return callback.apply(undefined, arguments);
-  };
-
-  return this.on(events, selector, proxyCallback);
-};
-
-EventDelegator.prototype.fire = function (type, detail, options) {
-  options = options || {};
-  detail = detail || {};
-
-  var evt = void 0;
-  var bubbles = options.bubbles === undefined ? true : options.bubbles;
-  var cancelable = Boolean(options.cancelable);
-
-  switch (type) {
-    case 'click':
-      evt = new window.Event(type, {
-        bubbles: bubbles,
-        cancelable: cancelable
-      });
-
-      // TODO check if without this works on every browsers
-      // evt = document.createEvent('HTMLEvents');
-      // evt.initEvent(type, true, false);
-      break;
-    default:
-      evt = new window.CustomEvent(type, {
-        bubbles: Boolean(bubbles),
-        cancelable: cancelable,
-        detail: detail
-      });
-      break;
-  }
-
-  this.element.dispatchEvent(evt);
-
-  return evt;
-};
-
-EventDelegator.matchesSelector = function () {};
-EventDelegator.cancel = _cancel;
-EventDelegator.addEvent = _addEvent;
-EventDelegator.aliases = _aliases;
-EventDelegator.matchesEvent = function () {
-  return true;
-};
-
-exports.default = EventDelegator;
-
-/***/ },
-/* 7 */
+/* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1065,11 +405,11 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _token = __webpack_require__(1);
+var _token = __webpack_require__(8);
 
 var _token2 = _interopRequireDefault(_token);
 
-var _filter = __webpack_require__(0);
+var _filter = __webpack_require__(7);
 
 var _filter2 = _interopRequireDefault(_filter);
 
@@ -1247,6 +587,548 @@ var Expr = function () {
 exports.default = Expr;
 
 /***/ },
+/* 4 */
+/***/ function(module, exports) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var SLOT_SUPPORTED = function () {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof window.HTMLUnknownElement);
+}();
+
+function slotName(element) {
+  return SLOT_SUPPORTED ? element.name : element.getAttribute('name');
+}
+
+exports.slotName = slotName;
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+"use strict";
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+function fix(template) {
+  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
+    window.HTMLTemplateElement.decorate(template);
+  }
+  return template;
+};
+
+exports.fix = fix;
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+let _matcher;
+let _level = 0;
+let _id = 0;
+let _handlers = {};
+let _delegatorInstances = {};
+
+function _addEvent (delegator, type, callback) {
+    // blur and focus do not bubble up but if you use event capturing
+    // then you will get them
+  let useCapture = type === 'blur' || type === 'focus';
+  delegator.element.addEventListener(type, callback, useCapture);
+}
+
+function _cancel (evt) {
+  evt.preventDefault();
+  evt.stopPropagation();
+}
+
+/**
+ * returns function to use for determining if an element
+ * matches a query selector
+ *
+ * @returns {Function}
+ */
+function _getMatcher (element) {
+  if (_matcher) {
+    return _matcher;
+  }
+
+  if (element.matches) {
+    _matcher = element.matches;
+    return _matcher;
+  }
+
+  if (element.webkitMatchesSelector) {
+    _matcher = element.webkitMatchesSelector;
+    return _matcher;
+  }
+
+  if (element.mozMatchesSelector) {
+    _matcher = element.mozMatchesSelector;
+    return _matcher;
+  }
+
+  if (element.msMatchesSelector) {
+    _matcher = element.msMatchesSelector;
+    return _matcher;
+  }
+
+  if (element.oMatchesSelector) {
+    _matcher = element.oMatchesSelector;
+    return _matcher;
+  }
+
+    // if it doesn't match a native browser method
+    // fall back to the delegator function
+  _matcher = Delegator.matchesSelector;
+  return _matcher;
+}
+
+/**
+ * determines if the specified element matches a given selector
+ *
+ * @param {Node} element - the element to compare against the selector
+ * @param {string} selector
+ * @param {Node} boundElement - the element the listener was attached to
+ * @returns {void|Node}
+ */
+function _matchesSelector (element, selector, boundElement) {
+    // no selector means this event was bound directly to this element
+  if (selector === '_root') {
+    return boundElement;
+  }
+
+    // if we have moved up to the element you bound the event to
+    // then we have come too far
+  if (element === boundElement) {
+    return;
+  }
+
+    // if this is a match then we are done!
+  if (_getMatcher(element).call(element, selector)) {
+    return element;
+  }
+
+    // if this element did not match but has a parent we should try
+    // going up the tree to see if any of the parent elements match
+    // for example if you are looking for a click on an <a> tag but there
+    // is a <span> inside of the a tag that it is the target,
+    // it should still work
+  if (element.parentNode) {
+    _level++;
+    return _matchesSelector(element.parentNode, selector, boundElement);
+  }
+}
+
+function _addHandler (delegator, event, selector, callback) {
+  if (!_handlers[delegator.id]) {
+    _handlers[delegator.id] = {};
+  }
+
+  if (!_handlers[delegator.id][event]) {
+    _handlers[delegator.id][event] = {};
+  }
+
+  if (!_handlers[delegator.id][event][selector]) {
+    _handlers[delegator.id][event][selector] = [];
+  }
+
+  _handlers[delegator.id][event][selector].push(callback);
+}
+
+function _removeHandler (delegator, event, selector, callback) {
+    // if there are no events tied to this element at all
+    // then don't do anything
+  if (!_handlers[delegator.id]) {
+    return;
+  }
+
+    // if there is no event type specified then remove all events
+    // example: Delegator(element).off()
+  if (!event) {
+    for (let type in _handlers[delegator.id]) {
+      if (_handlers[delegator.id].hasOwnProperty(type)) {
+        _handlers[delegator.id][type] = {};
+      }
+    }
+    return;
+  }
+
+    // if no callback or selector is specified remove all events of this type
+    // example: Delegator(element).off('click')
+  if (!callback && !selector) {
+    _handlers[delegator.id][event] = {};
+    return;
+  }
+
+    // if a selector is specified but no callback remove all events
+    // for this selector
+    // example: Delegator(element).off('click', '.sub-element')
+  if (!callback) {
+    delete _handlers[delegator.id][event][selector];
+    return;
+  }
+
+    // if we have specified an event type, selector, and callback then we
+    // need to make sure there are callbacks tied to this selector to
+    // begin with.  if there aren't then we can stop here
+  if (!_handlers[delegator.id][event][selector]) {
+    return;
+  }
+
+    // if there are then loop through all the callbacks and if we find
+    // one that matches remove it from the array
+  for (let i = 0; i < _handlers[delegator.id][event][selector].length; i++) {
+    if (_handlers[delegator.id][event][selector][i] === callback) {
+      _handlers[delegator.id][event][selector].splice(i, 1);
+      break;
+    }
+  }
+}
+
+function _handleEvent (id, e, type) {
+  if (!_handlers[id][type]) {
+    return;
+  }
+
+  let target = e.target || e.srcElement;
+  let selector;
+  let match;
+  let matches = {};
+  let i = 0;
+  let j = 0;
+
+    // find all events that match
+  _level = 0;
+  for (selector in _handlers[id][type]) {
+    if (_handlers[id][type].hasOwnProperty(selector)) {
+      match = _matchesSelector(target, selector, _delegatorInstances[id].element);
+
+      if (match && Delegator.matchesEvent(type, _delegatorInstances[id].element, match, selector === '_root', e)) {
+        _level++;
+        _handlers[id][type][selector].match = match;
+        matches[_level] = _handlers[id][type][selector];
+      }
+    }
+  }
+
+    // stopPropagation() fails to set cancelBubble to true in Webkit
+    // @see http://code.google.com/p/chromium/issues/detail?id=162270
+  e.stopPropagation = function () {
+    e.cancelBubble = true;
+  };
+
+  for (i = 0; i <= _level; i++) {
+    if (matches[i]) {
+      for (j = 0; j < matches[i].length; j++) {
+        if (matches[i][j].call(matches[i].match, e) === false) {
+          Delegator.cancel(e);
+          return;
+        }
+
+        if (e.cancelBubble) {
+          return;
+        }
+      }
+    }
+  }
+}
+
+let id = 0;
+function nextId () {
+  return id++;
+}
+
+const aliases = new Map();
+const aliasesDefaultTranslator = name => ([ name ]);
+const aliasesTranslators = {
+  transitionend (name) {
+    let el = document.createElement('fakeelement');
+    let transitions = {
+      'OTransition': 'oTransitionEnd',
+      'MozTransition': 'transitionend',
+      'WebkitTransition': 'webkitTransitionEnd',
+      'transition': 'transitionend',
+    };
+
+    for (let t in transitions) {
+      if (el.style[t] !== undefined) {
+        return [transitions[t]];
+      }
+    }
+  },
+};
+
+function _aliases (name) {
+  let theAliases;
+  if (aliases.has(name)) {
+    theAliases = aliases.get(name);
+  } else {
+    let translator = aliasesTranslators[name] || aliasesDefaultTranslator;
+    theAliases = translator(name);
+    aliases.set(name, theAliases);
+  }
+
+  return theAliases;
+}
+
+/**
+ * binds the specified events to the element
+ *
+ * @param {string|Array} events
+ * @param {string} selector
+ * @param {Function} callback
+ * @param {boolean=} remove
+ * @returns {Object}
+ */
+function _bind (events, selector, callback, remove) {
+    // fail silently if you pass null or undefined as an alement
+    // in the Delegator constructor
+  if (!this.element) {
+    return;
+  }
+
+  if (!(events instanceof Array)) {
+    events = [events];
+  }
+
+  if (!callback && typeof (selector) === 'function') {
+    callback = selector;
+    selector = '_root';
+  }
+
+  if (selector instanceof window.HTMLElement) {
+    let id;
+    if (selector.hasAttribute('bind-event-id')) {
+      id = selector.getAttribute('bind-event-id');
+    } else {
+      id = nextId();
+      selector.setAttribute('bind-event-id', id);
+    }
+    selector = `[bind-event-id="${id}"]`;
+  }
+
+  let id = this.id;
+  let i;
+
+  function _getGlobalCallback (type) {
+    return function (e) {
+      _handleEvent(id, e, type);
+    };
+  }
+
+  for (i = 0; i < events.length; i++) {
+    _aliases(events[i]).forEach(alias => {
+      // console.info('> ' + events[i] + ':' + alias);
+      if (remove) {
+        _removeHandler(this, alias, selector, callback);
+        return;
+      }
+
+      if (!_handlers[id] || !_handlers[id][alias]) {
+        Delegator.addEvent(this, alias, _getGlobalCallback(alias));
+      }
+
+      _addHandler(this, alias, selector, callback);
+    });
+  }
+
+  return this;
+}
+
+/**
+ * Delegator object constructor
+ *
+ * @param {Node} element
+ */
+function Delegator (element, id) {
+  this.element = element;
+  this.id = id;
+}
+
+/**
+ * adds an event
+ *
+ * @param {string|Array} events
+ * @param {string} selector
+ * @param {Function} callback
+ * @returns {Object}
+ */
+Delegator.prototype.on = function (events, selector, callback) {
+  return _bind.call(this, events, selector, callback);
+};
+
+/**
+ * removes an event
+ *
+ * @param {string|Array} events
+ * @param {string} selector
+ * @param {Function} callback
+ * @returns {Object}
+ */
+Delegator.prototype.off = function (events, selector, callback) {
+  return _bind.call(this, events, selector, callback, true);
+};
+
+Delegator.prototype.once = function (events, selector, callback) {
+  if (!callback && typeof (selector) === 'function') {
+    callback = selector;
+    selector = '_root';
+  }
+
+  const proxyCallback = (...args) => {
+    this.off(events, selector, proxyCallback);
+    return callback(...args);
+  };
+
+  return this.on(events, selector, proxyCallback);
+};
+
+Delegator.prototype.fire = function (type, detail, options) {
+  options = options || {};
+  detail = detail || {};
+
+  let evt;
+  let bubbles = options.bubbles === undefined ? true : options.bubbles;
+  let cancelable = Boolean(options.cancelable);
+
+  switch (type) {
+    case 'click':
+      evt = new window.Event(type, {
+        bubbles: bubbles,
+        cancelable: cancelable,
+      });
+
+      // TODO check if without this works on every browsers
+      // evt = document.createEvent('HTMLEvents');
+      // evt.initEvent(type, true, false);
+      break;
+    default:
+      evt = new window.CustomEvent(type, {
+        bubbles: Boolean(bubbles),
+        cancelable: cancelable,
+        detail: detail,
+      });
+      break;
+  }
+
+  this.element.dispatchEvent(evt);
+
+  return evt;
+};
+
+Delegator.matchesSelector = function () {};
+Delegator.cancel = _cancel;
+Delegator.addEvent = _addEvent;
+Delegator.aliases = _aliases;
+Delegator.matchesEvent = function () {
+  return true;
+};
+
+function eventHelper (element) {
+  // only keep one Delegator instance per node to make sure that
+  // we don't create a ton of new objects if you want to delegate
+  // multiple events from the same node
+  //
+  // for example: eventHelper(document).on(...
+  for (let key in _delegatorInstances) {
+    if (_delegatorInstances[key].element === element) {
+      return _delegatorInstances[key];
+    }
+  }
+
+  _id++;
+  _delegatorInstances[_id] = new Delegator(element, _id);
+
+  return _delegatorInstances[_id];
+}
+
+/* harmony default export */ exports["default"] = eventHelper;
+
+
+/***/ },
+/* 7 */
+/***/ function(module, exports) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Filter = function () {
+  function Filter(name, callback, otherArgs) {
+    _classCallCheck(this, Filter);
+
+    this.name = name;
+    this.callback = callback;
+    this.otherArgs = otherArgs;
+  }
+
+  _createClass(Filter, [{
+    key: 'invoke',
+    value: function invoke(val) {
+      var args = [val];
+      [].push.apply(args, this.otherArgs);
+      return this.callback.apply(null, args);
+    }
+  }], [{
+    key: 'put',
+    value: function put(name, callback) {
+      registry[name] = callback;
+    }
+  }, {
+    key: 'get',
+    value: function get(name) {
+      var segments = name.split(':');
+      var args = segments.splice(1);
+      var key = segments.pop();
+      return new Filter(key, registry[key], args);
+    }
+  }]);
+
+  return Filter;
+}();
+
+var registry = {
+  required: function required(val) {
+    if (val === undefined || val === null || val === '') {
+      throw new Error('Value is required');
+    }
+    return val;
+  },
+  upper: function upper(val) {
+    return String.prototype.toUpperCase.call(val || '');
+  },
+  lower: function lower(val) {
+    return String.prototype.toLowerCase.call(val || '');
+  },
+  not: function not(val) {
+    return !val;
+  },
+  slice: function slice(val, begin, end) {
+    return Array.prototype.slice.call(val || [], begin, end);
+  }
+};
+
+exports.default = Filter;
+
+/***/ },
 /* 8 */
 /***/ function(module, exports) {
 
@@ -1257,82 +1139,79 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-function serialize(value) {
-  switch (typeof value === 'undefined' ? 'undefined' : _typeof(value)) {
-    case 'boolean':
-      return value ? '' : undefined;
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-    case 'object':
-      if (value instanceof Date) {
-        return value;
-      } else if (value instanceof RegExp) {
-        return value.toString().slice(1, -1);
-      } else if (value) {
-        try {
-          return JSON.stringify(value);
-        } catch (err) {
-          return '';
-        }
+var CACHE = new Map();
+
+var Token = function () {
+  _createClass(Token, null, [{
+    key: 'get',
+    value: function get(name) {
+      if (CACHE.has(name)) {
+        return CACHE.get(name);
       }
-      break;
-    default:
-    // noop
+
+      var token = new Token(name);
+      CACHE.set(name, token);
+      return token;
+    }
+  }, {
+    key: 'CACHE',
+    get: function get() {
+      return CACHE;
+    }
+  }]);
+
+  function Token(name) {
+    _classCallCheck(this, Token);
+
+    this.name = name;
+    this._value = null;
+    this.type = 'v';
+
+    if (!this.name.match(/^[a-zA-Z_]/)) {
+      try {
+        this._value = JSON.parse(this.name);
+        this.type = 's';
+      } catch (err) {}
+    }
   }
-  return value === null ? undefined : value;
+
+  _createClass(Token, [{
+    key: 'value',
+    value: function value(context, others) {
+      context = context || window;
+
+      if (this.type === 's') {
+        return this._value;
+      }
+
+      var val = valueOf(context, this.name);
+      if (typeof val !== 'undefined') {
+        return val;
+      }
+
+      val = valueOf(others, this.name);
+      if (typeof val !== 'undefined') {
+        return val;
+      }
+
+      return;
+    }
+  }]);
+
+  return Token;
+}();
+
+function valueOf(context, key) {
+  if (context) {
+    return typeof context.get === 'function' ? context.get(key) : context[key];
+  }
 }
 
-function deserialize(value, type) {
-  switch (type) {
-    case Number:
-      value = Number(value);
-      break;
-
-    case Boolean:
-      value = Boolean(value === '' || value === 'true' || value === '1' || value === 'on');
-      break;
-
-    case Object:
-      try {
-        value = JSON.parse(value);
-      } catch (err) {
-        // allow non-JSON literals like Strings and Numbers
-        // console.warn('Failed decode json: "' + value + '" to Object');
-      }
-      break;
-
-    case Array:
-      try {
-        value = JSON.parse(value);
-      } catch (err) {
-        // .console.warn('Failed decode json: "' + value + '" to Array');
-        value = null;
-      }
-      break;
-
-    case Date:
-      value = new Date(value);
-      break;
-
-    case RegExp:
-      value = new RegExp(value);
-      break;
-
-    case Function:
-      value = new Function(value); // eslint-disable-line
-      break;
-
-    // behave like default for now
-    // case String:
-    default:
-      break;
-  }
-  return value;
-}
-
-exports.serialize = serialize;
-exports.deserialize = deserialize;
+exports.default = Token;
 
 /***/ },
 /* 9 */
@@ -1345,60 +1224,42 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _expr = __webpack_require__(7);
+var _eventHelper4 = __webpack_require__(6);
+
+var _eventHelper5 = _interopRequireDefault(_eventHelper4);
+
+var _expr = __webpack_require__(3);
 
 var _expr2 = _interopRequireDefault(_expr);
 
-var _binding = __webpack_require__(4);
+var _binding = __webpack_require__(2);
 
 var _binding2 = _interopRequireDefault(_binding);
 
-var _accessor = __webpack_require__(2);
+var _accessor = __webpack_require__(0);
 
 var _accessor2 = _interopRequireDefault(_accessor);
 
-var _annotation = __webpack_require__(3);
+var _annotation = __webpack_require__(1);
 
 var _annotation2 = _interopRequireDefault(_annotation);
 
-var _filter = __webpack_require__(0);
+var _template = __webpack_require__(5);
 
-var _filter2 = _interopRequireDefault(_filter);
-
-var _token = __webpack_require__(1);
-
-var _token2 = _interopRequireDefault(_token);
-
-var _event = __webpack_require__(6);
-
-var _event2 = _interopRequireDefault(_event);
-
-var _css = __webpack_require__(5);
-
-var _css2 = _interopRequireDefault(_css);
-
-var _serializer = __webpack_require__(8);
+var _slot = __webpack_require__(4);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
+// new version will not export filter token and css modules
+// import Filter from './filter';
+// import Token from './token';
+// import Css from './css';
+
 var templateId = 0;
 function nextId() {
   return templateId++;
-}
-
-var SLOT_SUPPORTED = typeof window === 'undefined' ? false : 'HTMLUnknownElement' in window && !(document.createElement('slot') instanceof window.HTMLUnknownElement);
-
-function slotName(element) {
-  return SLOT_SUPPORTED ? element.name : element.getAttribute('name');
-}
-
-function fixTemplate(template) {
-  if (!template.content && window.HTMLTemplateElement && window.HTMLTemplateElement.decorate) {
-    window.HTMLTemplateElement.decorate(template);
-  }
-  return template;
 }
 
 function T(template, host, marker) {
@@ -1415,19 +1276,19 @@ T.prototype = {
     return this.querySelector(selector);
   },
   on: function on() {
-    var _Event;
+    var _eventHelper;
 
-    (_Event = (0, _event2.default)(this.__templateHost)).on.apply(_Event, arguments);
+    (_eventHelper = (0, _eventHelper5.default)(this.__templateHost)).on.apply(_eventHelper, arguments);
   },
   off: function off() {
-    var _Event2;
+    var _eventHelper2;
 
-    (_Event2 = (0, _event2.default)(this.__templateHost)).off.apply(_Event2, arguments);
+    (_eventHelper2 = (0, _eventHelper5.default)(this.__templateHost)).off.apply(_eventHelper2, arguments);
   },
   once: function once() {
-    var _Event3;
+    var _eventHelper3;
 
-    (_Event3 = (0, _event2.default)(this.__templateHost)).once.apply(_Event3, arguments);
+    (_eventHelper3 = (0, _eventHelper5.default)(this.__templateHost)).once.apply(_eventHelper3, arguments);
   },
   all: function all(obj) {
     for (var i in obj) {
@@ -1600,7 +1461,7 @@ T.prototype = {
     }
 
     // do below only if template is exists
-    this.__template = fixTemplate(template);
+    this.__template = (0, _template.fix)(template);
     this.__templateChildNodes = [];
 
     this.__templateFragment = document.importNode(this.__template.content, true);
@@ -1640,7 +1501,7 @@ T.prototype = {
     if (contentFragment && contentFragment instanceof window.DocumentFragment) {
       // try {
       [].forEach.call(fragment.querySelectorAll('slot'), function (slot) {
-        var name = slotName(slot);
+        var name = (0, _slot.slotName)(slot);
         var parent = slot.parentElement || fragment;
         var marker = document.createComment('slot ' + name);
 
@@ -1730,9 +1591,16 @@ T.prototype = {
 
       var attrName = attr.name;
 
+      if (attrName === 'id' || attrName === 'class' || attrName === 'style') {
+        continue;
+      }
+
       if (attrName.indexOf('(') === 0) {
         this.__parseEventAnnotations(element, attrName);
       } else {
+        if (attrName === 'api-key') {
+          console.log(this, attrName, attr.value, _expr2.default.get(attr.value), _accessor2.default.get(element, attrName));
+        }
         // bind property annotation
         annotated = this.__templateAnnotate(_expr2.default.get(attr.value), _accessor2.default.get(element, attrName)) || annotated;
       }
@@ -1834,13 +1702,12 @@ T.prototype = {
   }
 };
 
-T.Filter = _filter2.default;
-T.Accessor = _accessor2.default;
-T.Token = _token2.default;
-T.Expr = _expr2.default;
-T.Event = _event2.default;
-T.Css = _css2.default;
-T.deserialize = _serializer.deserialize;
+// new version will not export filter token and css modules
+// T.Filter = Filter;
+// T.Accessor = Accessor;
+// T.Token = Token;
+// T.Expr = Expr;
+// T.Css = Css;
 
 window.T = T;
 

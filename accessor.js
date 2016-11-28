@@ -1,3 +1,5 @@
+import { camelize } from 'inflector';
+
 class BaseAccessor {
   static get (node, name) {
     if (node && 'nodeType' in node) {
@@ -19,7 +21,7 @@ class BaseAccessor {
             return new StyleAccessor(node, name.split('.').splice(1).join('.'));
           }
 
-          return new BaseAccessor(node, name);
+          return new PropertyAccessor(node, name);
         case window.Node.TEXT_NODE:
           if (node.parentElement && node.parentElement.nodeName === 'TEXTAREA') {
             return new ValueAccessor(node.parentElement);
@@ -30,6 +32,7 @@ class BaseAccessor {
           throw new Error(`Unimplemented resolving accessor for nodeType: ${node.nodeType}`);
       }
     } else {
+      console.warn('xxxx', node, name);
       return new BaseAccessor(node, name);
     }
   }
@@ -53,6 +56,15 @@ class BaseAccessor {
     } else {
       return this.node[this.name];
     }
+  }
+}
+
+class PropertyAccessor extends BaseAccessor {
+  constructor (node, name) {
+    super();
+
+    this.node = node;
+    this.name = camelize(name);
   }
 }
 

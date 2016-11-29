@@ -9,6 +9,7 @@
     "test:lint": "eslint -- **/*.js",
     "build": "yarn run clean && yarn run test && yarn run build:webpack && NODE_ENV=production yarn run build:webpack",
     "build:webpack": "webpack",
+    "build:browserify": "browserify",
     "build:profile": "mkdir -p profiles && webpack --profile --json > profiles/profile-`date +'%Y%m%d%H%M%S'`.json"
   },
   "author": "Ganesha <reekoheek@gmail.com>",
@@ -22,7 +23,8 @@
     "eslint-plugin-html": "^1.5.5",
     "eslint-plugin-promise": "^3.3.0",
     "eslint-plugin-standard": "^2.0.1",
-    "webpack": "reekoheek/webpack#master"
+    "uglify-js-harmony": "mishoo/UglifyJS2#harmony",
+    "webpack": "2.1.0-beta.27"
   },
   "dependencies": {
     "event-helper": "xinix-technology/event-helper",

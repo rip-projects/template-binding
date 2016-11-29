@@ -1,4 +1,5 @@
-const webpack = require('webpack');
+// const webpack = require('webpack');
+const UglifyJsPlugin = require('./dev/webpack/UglifyJsPlugin');
 
 const ENV = process.env.NODE_ENV || 'development';
 
@@ -7,7 +8,7 @@ function getPlugins () {
 
   if (ENV === 'production') {
     plugins.push(
-      new webpack.optimize.UglifyJsPlugin({ compress: { warnings: false } })
+      new UglifyJsPlugin({ compress: { warnings: true } })
     );
   }
 
@@ -22,17 +23,17 @@ module.exports = {
   },
   devtool: 'source-map',
   plugins: getPlugins(),
-  module: {
-    loaders: [
-      // {
-      //   test: /\.js$/,
-      //   exclude: /(node_modules|bower_components)/,
-      //   loader: require.resolve('babel-loader'),
-      //   query: {
-      //     // presets: ['es2015'],
-      //     cacheDirectory: true,
-      //   },
-      // },
-    ],
-  },
+  // module: {
+  //   loaders: [
+  //     {
+  //       test: /\.js$/,
+  //       exclude: /(node_modules|bower_components)/,
+  //       loader: require.resolve('babel-loader'),
+  //       query: {
+  //         // presets: ['es2015'],
+  //         cacheDirectory: true,
+  //       },
+  //     },
+  //   ],
+  // },
 };

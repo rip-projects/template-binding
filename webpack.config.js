@@ -24,15 +24,15 @@ module.exports = {
   plugins: getPlugins(),
   module: {
     loaders: [
-      {
-        test: /\.js$/,
-        exclude: /(node_modules|bower_components)/,
-        loader: require.resolve('babel-loader'),
-        query: {
-          presets: ['es2015'],
-          cacheDirectory: true,
-        },
-      },
+      // {
+      //   test: /\.js$/,
+      //   exclude: /(node_modules|bower_components)/,
+      //   loader: require.resolve('babel-loader'),
+      //   query: {
+      //     // presets: ['es2015'],
+      //     cacheDirectory: true,
+      //   },
+      // },
     ],
   },
 };

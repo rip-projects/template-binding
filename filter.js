@@ -19,6 +19,11 @@ class Filter {
     let segments = name.split(':');
     let args = segments.splice(1);
     let key = segments.pop();
+
+    if (key in registry === false) {
+      throw new Error(`Filter "${name}" not found.`);
+    }
+
     return new Filter(key, registry[key], args);
   }
 }
@@ -34,6 +39,7 @@ const registry = {
   lower: (val) => String.prototype.toLowerCase.call(val || ''),
   not: (val) => !val,
   slice: (val, begin, end) => Array.prototype.slice.call(val || [], begin, end),
+  json: (val, indent) => JSON.stringify(val, null, Number(indent)),
 };
 
 export default Filter;

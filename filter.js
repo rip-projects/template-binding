@@ -40,6 +40,11 @@ const registry = {
   not: (val) => !val,
   slice: (val, begin, end) => Array.prototype.slice.call(val || [], begin, end),
   json: (val, indent) => JSON.stringify(val, null, Number(indent)),
+  consoleTrace: (val) => console.trace(val),
+  consoleLog: (val) => console.log(val),
+  consoleInfo: (val) => console.info(val),
+  consoleWarn: (val) => console.warn(val),
+  consoleError: (val) => console.error(val),
 };
 
 export default Filter;

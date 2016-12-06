@@ -6,6 +6,10 @@ class Binding {
     this.annotations = [];
   }
 
+  annotate (annotation) {
+    this.annotations.push(annotation);
+  }
+
   walkEffect (value) {
     this.annotations.forEach(annotation => {
       // try {

@@ -29,22 +29,26 @@ class Filter {
 }
 
 const registry = {
-  required: (val) => {
+  required: val => {
     if (val === undefined || val === null || val === '') {
       throw new Error('Value is required');
     }
     return val;
   },
-  upper: (val) => String.prototype.toUpperCase.call(val || ''),
-  lower: (val) => String.prototype.toLowerCase.call(val || ''),
-  not: (val) => !val,
+  string: val => String(val),
+  number: val => Number(val),
+  boolean: val => Boolean(val),
+  upper: val => String.prototype.toUpperCase.call(val || ''),
+  lower: val => String.prototype.toLowerCase.call(val || ''),
+  not: val => !val,
   slice: (val, begin, end) => Array.prototype.slice.call(val || [], begin, end),
   json: (val, indent) => JSON.stringify(val, null, Number(indent)),
-  consoleTrace: (val) => console.trace(val),
-  consoleLog: (val) => console.log(val),
-  consoleInfo: (val) => console.info(val),
-  consoleWarn: (val) => console.warn(val),
-  consoleError: (val) => console.error(val),
+  consoleTrace: val => console.trace(val),
+  consoleLog: val => console.log(val),
+  consoleInfo: val => console.info(val),
+  consoleWarn: val => console.warn(val),
+  consoleError: val => console.error(val),
+  currency: val => (val || 0).toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,'),
 };
 
 export default Filter;

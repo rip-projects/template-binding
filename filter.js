@@ -38,6 +38,7 @@ const registry = {
   string: val => String(val),
   number: val => Number(val),
   boolean: val => Boolean(val),
+  default: (val, defVal) => (val || defVal),
   upper: val => String.prototype.toUpperCase.call(val || ''),
   lower: val => String.prototype.toLowerCase.call(val || ''),
   not: val => !val,

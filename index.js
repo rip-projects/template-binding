@@ -8,11 +8,6 @@ import Annotation from './annotation';
 import { fix } from './helpers/template';
 import { slotName } from './helpers/slot';
 
-// new version will not export filter token and css modules
-// import Filter from './filter';
-// import Token from './token';
-// import Css from './css';
-
 let templateId = 0;
 function nextId () {
   return templateId++;

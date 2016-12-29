@@ -8,10 +8,12 @@ import Annotation from './annotation';
 import { fix } from './helpers/template';
 import { slotName } from './helpers/slot';
 
-let templateId = 0;
-function nextId () {
-  return templateId++;
-}
+const ID = (function *() {
+  let id = 0;
+  while (true) {
+    yield id++;
+  }
+})();
 
 function T (template, host, marker) {
   this.__templateInitialize(template, host, marker);
@@ -25,6 +27,16 @@ T.prototype = {
 
   $$ (selector) {
     return this.querySelector(selector);
+  },
+
+  promised (eventName, selector) {
+    return new Promise(resolve => {
+      if (selector) {
+        this.once(eventName, selector, resolve);
+      } else {
+        this.once(eventName, resolve);
+      }
+    });
   },
 
   on () {
@@ -192,7 +204,7 @@ T.prototype = {
   },
 
   __templateInitialize (template, host, marker) {
-    this.__templateId = nextId();
+    this.__templateId = ID.next().value;
     this.__templateBindings = {};
     this.__templateHost = host || (template ? template.parentElement : null);
     this.__templateMarker = marker;

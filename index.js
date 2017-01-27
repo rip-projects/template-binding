@@ -189,7 +189,6 @@ T.prototype = {
       return;
     }
 
-    // try {
     let binding = this.__templateGetBinding(path);
     if (binding) {
       if (typeof value === 'undefined') {
@@ -198,9 +197,6 @@ T.prototype = {
 
       binding.walkEffect(value);
     }
-    // } catch (err) {
-    //   console.warn(`#notify caught error: ${err.message}\n Stack trace: ${err.stack}`);
-    // }
   },
 
   __templateInitialize (template, host, marker) {
@@ -370,9 +366,9 @@ T.prototype = {
   __parseElementAnnotations (element) {
     let annotated = false;
 
-    let scoped = element.__templateModel;
-
-    if (scoped) {
+    // when element already has template model it means it already parsed, skip
+    // parsing that element
+    if (element.__templateModel) {
       return annotated;
     }
 

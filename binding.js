@@ -12,11 +12,7 @@ class Binding {
 
   walkEffect (value) {
     this.annotations.forEach(annotation => {
-      // try {
       annotation.effect(value/* , this.model */);
-      // } catch (err) {
-      //   console.error(`Error caught while walk effect annotation: ${annotation.expr ? annotation.expr.value : '#unknown'}\n ${err.stack}`);
-      // }
     });
 
     Object.keys(this.paths).forEach(i => {

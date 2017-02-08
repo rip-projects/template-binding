@@ -131,16 +131,11 @@ class Expr {
       return this.filters.reduce((val, filter) => filter.invoke(val), val);
     }
 
-    let fn = this.fn.value(context, context.__templateHost);
-    if (typeof fn !== 'function') {
-      throw new Error(`Method is not eligible, ${context.__templateHost.nodeName || '$anonymous'}#${this.name}`);
-    }
-
     let args = this.args.map(arg => {
       return arg.value(context, otherArgs);
     });
 
-    return fn.apply(context, args);
+    return this.fn.invoke(args, context, context.__templateHost);
   }
 }
 

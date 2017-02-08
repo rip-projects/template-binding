@@ -1,7 +1,14 @@
-import { camelize } from 'inflector';
+import BaseAccessor from './accessors/base';
+import AttributeAccessor from './accessors/attribute';
+import TextAccessor from './accessors/text';
+import HTMLAccessor from './accessors/html';
+import ValueAccessor from './accessors/value';
+import ClassAccessor from './accessors/class';
+import StyleAccessor from './accessors/style';
+import PropertyAccessor from './accessors/property';
 
-class BaseAccessor {
-  static get (node, name) {
+export default {
+  get (node, name) {
     if (node && 'nodeType' in node) {
       switch (node.nodeType) {
         case window.Node.ELEMENT_NODE:
@@ -32,114 +39,7 @@ class BaseAccessor {
           throw new Error(`Unimplemented resolving accessor for nodeType: ${node.nodeType}`);
       }
     } else {
-      console.warn('xxxx', node, name);
       return new BaseAccessor(node, name);
     }
-  }
-
-  constructor (node, name) {
-    this.node = node;
-    this.name = name;
-  }
-
-  set (value) {
-    if (typeof this.node.set === 'function') {
-      this.node.set(this.name, value);
-    } else {
-      this.node[this.name] = value;
-    }
-  }
-
-  get () {
-    if (typeof this.node.get === 'function') {
-      return this.node.get(this.name);
-    } else {
-      return this.node[this.name];
-    }
-  }
-}
-
-class PropertyAccessor extends BaseAccessor {
-  constructor (node, name) {
-    super();
-
-    this.node = node;
-    this.name = camelize(name);
-  }
-}
-
-class TextAccessor extends BaseAccessor {
-  constructor (node) {
-    super(node, 'textContent');
-  }
-
-  set (value) {
-    this.node.textContent = typeof value === 'undefined' ? '' : value;
-  }
-}
-
-class ClassAccessor extends BaseAccessor {
-  set (value) {
-    if (value) {
-      this.node.classList.add(this.name);
-    } else {
-      this.node.classList.remove(this.name);
-    }
-  }
-
-  get () {
-    throw new Error('Unimplemented');
-  }
-}
-
-class StyleAccessor extends BaseAccessor {
-  set (value) {
-    this.node.style[this.name] = value || '';
-  }
-
-  get () {
-    throw new Error('Unimplemented');
-  }
-}
-
-class HTMLAccessor extends BaseAccessor {
-  set (value) {
-    this.node.innerHTML = typeof value === 'undefined' ? '' : value;
-  }
-
-  get () {
-    return this.node.innerHTML;
-  }
-}
-
-class ValueAccessor extends BaseAccessor {
-  constructor (node) {
-    super(node, 'value');
-  }
-
-  set (value) {
-    if (document.activeElement !== this.node) {
-      super.set(typeof value === 'undefined' ? '' : value);
-    }
-  }
-}
-
-class AttributeAccessor extends BaseAccessor {
-  constructor (node, name) {
-    super(node, name.slice(0, -1));
-  }
-
-  set (value) {
-    if (value) {
-      this.node.setAttribute(this.name, value);
-    } else {
-      this.node.removeAttribute(this.name);
-    }
-  }
-
-  get () {
-    return this.node.getAttribute(this.name);
-  }
-}
-
-export default BaseAccessor;
+  },
+};

@@ -7,16 +7,7 @@ class Binding {
   }
 
   annotate (annotation) {
-    if (this.isAnnotated(annotation)) {
-      return;
-    }
-
     this.annotations.push(annotation);
-  }
-
-  isAnnotated ({ model, expr }) {
-    let annotation = this.annotations.find(annotation => annotation.model === model && annotation.expr === expr);
-    return Boolean(annotation);
   }
 
   walkEffect (type, value) {

@@ -1,6 +1,6 @@
 {
   "name": "template-binding",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "HTML template with binding",
   "main": "index.js",
   "scripts": {

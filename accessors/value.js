@@ -5,9 +5,9 @@ class ValueAccessor extends BaseAccessor {
     super(node, 'value');
   }
 
-  set (value) {
+  set (value = '') {
     if (document.activeElement !== this.node) {
-      super.set(typeof value === 'undefined' ? '' : value);
+      super.set(value);
     }
   }
 }

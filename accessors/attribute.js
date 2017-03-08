@@ -7,7 +7,9 @@ class AttributeAccessor extends BaseAccessor {
 
   set (value) {
     if (value) {
-      this.node.setAttribute(this.name, value);
+      if (value !== this.node.getAttribute(this.name)) {
+        this.node.setAttribute(this.name, value);
+      }
     } else {
       this.node.removeAttribute(this.name);
     }

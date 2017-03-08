@@ -5,7 +5,7 @@ class Annotation {
     this.accessor = accessor;
   }
 
-  effect (value) {
+  effect (type, value) {
     if (this.accessor) {
       this.accessor.set(this.expr.invoke(this.model));
     } else {

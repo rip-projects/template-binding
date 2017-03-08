@@ -5,8 +5,10 @@ class TextAccessor extends BaseAccessor {
     super(node, 'textContent');
   }
 
-  set (value) {
-    this.node.textContent = typeof value === 'undefined' ? '' : value;
+  set (value = '') {
+    if (value !== this.node.textContent) {
+      this.node.textContent = value;
+    }
   }
 }
 

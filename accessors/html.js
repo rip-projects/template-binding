@@ -1,8 +1,8 @@
 import BaseAccessor from './base';
 
 class HTMLAccessor extends BaseAccessor {
-  set (value) {
-    this.node.innerHTML = typeof value === 'undefined' ? '' : value;
+  set (value = '') {
+    this.node.innerHTML = value;
   }
 
   get () {

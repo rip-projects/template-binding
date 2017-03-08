@@ -1,8 +1,8 @@
 import BaseAccessor from './base';
 
 class StyleAccessor extends BaseAccessor {
-  set (value) {
-    this.node.style[this.name] = value || '';
+  set (value = '') {
+    this.node.style[this.name] = value;
   }
 
   get () {

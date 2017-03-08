@@ -122,9 +122,24 @@ T.prototype = {
 
     let property = path.slice(-1).pop();
 
-    let result = object[property].push(...values);
+    if (!Array.isArray(object[property])) {
+      object[property] = [];
+    }
 
+    object[property] = object[property].slice();
+    let result = object[property].push(...values);
     this.notify(path, object[property]);
+
+    // let index = object[property].length;
+    // let removed = [];
+    // let addedCount = values.length;
+    // let result = object[property].push(...values);
+    //
+    // object = object[property];
+    //
+    // this.notifySplices(path, [
+    //   { index, removed, addedCount, object, type: 'splice' },
+    // ]);
 
     return result;
   },
@@ -147,14 +162,29 @@ T.prototype = {
 
     let property = path.slice(-1).pop();
 
-    let result = object[property].pop();
+    if (!Array.isArray(object[property])) {
+      object[property] = [];
+    }
 
+    object[property] = object[property].slice();
+    let result = object[property].pop();
     this.notify(path, object[property]);
+
+    // let index = object[property].length;
+    // let addedCount = 0;
+    // let result = object[property].pop();
+    // let removed = [ result ];
+    //
+    // object = object[property];
+    //
+    // this.notifySplices(path, [
+    //   { index, removed, addedCount, object, type: 'splice' },
+    // ]);
 
     return result;
   },
 
-  splice (path, ...args) {
+  splice (path, index, removeCount, ...values) {
     path = this.__templateGetPathAsArray(path);
 
     let object = this;
@@ -172,9 +202,23 @@ T.prototype = {
 
     let property = path.slice(-1).pop();
 
-    let result = object[property].splice(...args);
+    if (!Array.isArray(object[property])) {
+      object[property] = [];
+    }
 
+    object[property] = object[property].slice();
+    let result = object[property].splice(index, removeCount, ...values);
     this.notify(path, object[property]);
+
+    // let addedCount = values.length;
+    // let result = object[property].splice(...values);
+    // let removed = result;
+    //
+    // object = object[property];
+    //
+    // this.notifySplices(path, [
+    //   { index, removed, addedCount, object, type: 'splice' },
+    // ]);
 
     return result;
   },
@@ -191,13 +235,29 @@ T.prototype = {
 
     let binding = this.__templateGetBinding(path);
     if (binding) {
-      if (typeof value === 'undefined') {
+      if (value === undefined) {
         value = this.get(path);
       }
 
-      binding.walkEffect(value);
+      binding.walkEffect('set', value);
     }
   },
+
+  // notifySplices (path, splices) {
+  //   path = this.__templateGetPathAsString(path);
+  //
+  //   if (!this.__templateReady) {
+  //     if (this.__templateNotifyOnReady.indexOf(path) === -1) {
+  //       this.__templateNotifyOnReady.push(path);
+  //     }
+  //     return;
+  //   }
+  //
+  //   let binding = this.__templateGetBinding(path);
+  //   if (binding) {
+  //     binding.walkEffect('splice', splices);
+  //   }
+  // },
 
   __templateInitialize (template, host, marker) {
     this.__templateId = nextId();

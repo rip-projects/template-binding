@@ -7,16 +7,25 @@ class Binding {
   }
 
   annotate (annotation) {
+    if (this.isAnnotated(annotation)) {
+      return;
+    }
+
     this.annotations.push(annotation);
   }
 
-  walkEffect (value) {
+  isAnnotated ({ model, expr }) {
+    let annotation = this.annotations.find(annotation => annotation.model === model && annotation.expr === expr);
+    return Boolean(annotation);
+  }
+
+  walkEffect (type, value) {
     this.annotations.forEach(annotation => {
-      annotation.effect(value/* , this.model */);
+      annotation.effect(type, value/* , this.model */);
     });
 
     Object.keys(this.paths).forEach(i => {
-      this.paths[i].walkEffect(value ? value[i] : undefined);
+      this.paths[i].walkEffect(type, value);
     });
   }
 }

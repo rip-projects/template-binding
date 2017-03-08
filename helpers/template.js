@@ -6,8 +6,8 @@ function fix (template) {
 };
 
 function needFixImportNode () {
-  console.log('needFixImportNode?');
-  if (document._xImportNode) {
+  // console.log('needFixImportNode?');
+  if (document.__importNode) {
     // already fixed
     return false;
   }
@@ -18,16 +18,15 @@ function needFixImportNode () {
 }
 
 if (needFixImportNode()) {
-  console.log('fixed importNode');
-
-  let importNode = document._xImportNode = document.importNode;
+  // console.log('fixed importNode');
+  document.__importNode = document.importNode;
   document.importNode = function (node, deep) {
     if (!deep) {
-      return importNode(node, deep);
+      return document.__importNode(node, deep);
     }
 
     let sourceTpls = [].slice.call(node.querySelectorAll('template'));
-    let imported = document._xImportNode(node, deep);
+    let imported = document.__importNode(node, deep);
     [].forEach.call(imported.querySelectorAll('template'), (child, i) => {
       child.innerHTML = sourceTpls[i].innerHTML;
     });

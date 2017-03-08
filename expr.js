@@ -3,24 +3,24 @@ import Filter from './filter';
 
 const CACHE = {
   's': {
-    '[': new Map(),
-    '{': new Map(),
+    '[': {},
+    '{': {},
   },
   'v': {
-    '[': new Map(),
-    '{': new Map(),
+    '[': {},
+    '{': {},
   },
 };
 
 function _get (value, mode, type) {
   let cache = CACHE[type][mode];
-  if (cache.has(value)) {
-    return cache.get(value);
+  if (value in cache) {
+    return cache[value];
   }
 
   let expr = new Expr(value, mode, type);
   if (type !== 's') {
-    cache.set(value, expr);
+    cache[value] = expr;
   }
 
   return expr;

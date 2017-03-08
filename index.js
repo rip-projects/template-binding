@@ -8,11 +8,11 @@ import Annotation from './annotation';
 import { fix } from './helpers/template';
 import { slotName } from './helpers/slot';
 
-const ID = (function *() {
+const nextId = (function () {
   let id = 0;
-  while (true) {
-    yield id++;
-  }
+  return function () {
+    return id++;
+  };
 })();
 
 function T (template, host, marker) {
@@ -200,7 +200,7 @@ T.prototype = {
   },
 
   __templateInitialize (template, host, marker) {
-    this.__templateId = ID.next().value;
+    this.__templateId = nextId();
     this.__templateBindings = {};
     this.__templateHost = host || (template ? template.parentElement : null);
     this.__templateMarker = marker;

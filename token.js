@@ -1,4 +1,4 @@
-const CACHE = new Map();
+const CACHE = {};
 
 class Token {
   static get CACHE () {
@@ -6,12 +6,12 @@ class Token {
   }
 
   static get (name) {
-    if (CACHE.has(name)) {
-      return CACHE.get(name);
+    if (name in CACHE) {
+      return CACHE[name];
     }
 
     let token = new Token(name);
-    CACHE.set(name, token);
+    CACHE[name] = token;
     return token;
   }
 

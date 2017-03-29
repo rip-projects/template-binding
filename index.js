@@ -227,6 +227,7 @@ T.prototype = {
     path = this.__templateGetPathAsString(path);
 
     if (!this.__templateReady) {
+      this.__templateNotifyOnReady = this.__templateNotifyOnReady || [];
       if (this.__templateNotifyOnReady.indexOf(path) === -1) {
         this.__templateNotifyOnReady.push(path);
       }

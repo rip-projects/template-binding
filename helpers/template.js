@@ -14,7 +14,7 @@ function needFixImportNode () {
   let template = document.createElement('template');
   template.innerHTML = '<template>i</template>';
   let imported = document.importNode(template.content, true);
-  return imported.firstChild.content.firstChild.textContent !== 'i';
+  return !imported.firstChild.content.firstChild || imported.firstChild.content.firstChild.textContent !== 'i';
 }
 
 if (needFixImportNode()) {

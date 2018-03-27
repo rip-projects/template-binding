@@ -1,6 +1,6 @@
 # template-binding
 
-DEPRECATED: This project already merged to [xin](https://github.com/xinix-technology/xin)
+> DEPRECATED: This project already merged to [xin](https://github.com/xinix-technology/xin)
 
 HTML5 already defining `<template>`, unfortunately the spec does not come with template binding capability.
 
